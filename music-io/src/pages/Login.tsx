@@ -4,9 +4,11 @@ import { Music } from 'lucide-react'
 import InputField from '../components/InputField'
 import Button from '../components/Button'
 import { login } from '../services/authApi'
+import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
   const navigate = useNavigate()
+  const { setUser } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -20,6 +22,7 @@ export default function Login() {
       const res = await login(email, password)
       if (res.success && res.data) {
         localStorage.setItem('accessToken', res.data.accessToken)
+        setUser(res.data.user)
         navigate('/')
       } else {
         setError(res.error?.message ?? '로그인에 실패했습니다.')

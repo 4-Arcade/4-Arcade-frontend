@@ -4,9 +4,11 @@ import { Music } from 'lucide-react'
 import InputField from '../components/InputField'
 import Button from '../components/Button'
 import { register } from '../services/authApi'
+import { useAuth } from '../context/AuthContext'
 
 export default function Register() {
   const navigate = useNavigate()
+  const { setUser } = useAuth()
   const [email, setEmail] = useState('')
   const [nickname, setNickname] = useState('')
   const [password, setPassword] = useState('')
@@ -21,6 +23,7 @@ export default function Register() {
       const res = await register(email, password, nickname)
       if (res.success && res.data) {
         localStorage.setItem('accessToken', res.data.accessToken)
+        setUser(res.data.user)
         navigate('/')
       } else {
         setError(res.error?.message ?? '회원가입에 실패했습니다.')
