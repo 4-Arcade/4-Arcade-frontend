@@ -1,9 +1,36 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Music } from 'lucide-react'
 import InputField from '../components/InputField'
 import Button from '../components/Button'
+import { login } from '../services/authApi'
 
 export default function Login() {
+  const navigate = useNavigate()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const res = await login(email, password)
+      if (res.success && res.data) {
+        localStorage.setItem('accessToken', res.data.accessToken)
+        navigate('/')
+      } else {
+        setError(res.error?.message ?? '로그인에 실패했습니다.')
+      }
+    } catch {
+      setError('서버 오류가 발생했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="flex h-screen">
       {/* Left - Branding */}
@@ -17,19 +44,36 @@ export default function Login() {
 
       {/* Right - Form */}
       <div className="flex-1 flex flex-col items-center justify-center bg-white px-20">
-        <div className="flex flex-col gap-6 w-[400px]">
+        <form className="flex flex-col gap-6 w-[400px]" onSubmit={handleSubmit}>
           <h1 className="text-[28px] font-bold text-text-primary">로그인</h1>
           <p className="text-sm text-text-secondary">계정에 로그인하여 퀴즈를 만들고 관리하세요.</p>
-          <InputField label="이메일" type="email" placeholder="이메일을 입력해주세요" />
-          <InputField label="비밀번호" type="password" placeholder="비밀번호를 입력해주세요" />
-          <Button variant="large" className="w-full">로그인</Button>
+          <InputField
+            label="이메일"
+            type="email"
+            placeholder="이메일을 입력해주세요"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+          />
+          <InputField
+            label="비밀번호"
+            type="password"
+            placeholder="비밀번호를 입력해주세요"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+          />
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <Button variant="large" className="w-full" disabled={loading}>
+            {loading ? '로그인 중...' : '로그인'}
+          </Button>
           <div className="flex items-center justify-center gap-1.5">
             <span className="text-[13px] text-text-secondary">아직 계정이 없으신가요?</span>
             <Link to="/register" className="text-[13px] font-semibold text-blue-600 hover:underline">
               회원가입
             </Link>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   )
