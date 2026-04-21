@@ -21,7 +21,6 @@ export interface AuthResponse {
     status: number
     details: Record<string, string>[]
   } | null
-  serverTime: string
   path: string
 }
 
