@@ -1,3 +1,11 @@
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Music, User } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+
+export default function Navbar() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 // import { Link, useLocation } from 'react-router-dom'
 // import { Music } from 'lucide-react'
 
@@ -60,6 +68,11 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
     )
   }
 
+  function handleLogout() {
+    logout()
+    navigate('/')
+  }
+
   return (
     <nav className="w-full h-16 bg-bg-secondary flex items-center justify-between px-10 shadow-sm">
       
@@ -78,6 +91,30 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
 
       {/* Right */}
       <div className="flex items-center gap-3">
+        {user ? (
+          <>
+            <Link
+              to="/mypage"
+              className="flex items-center gap-2 text-[14px] font-medium text-text-primary hover:text-blue-600 transition-colors"
+            >
+              <User className="w-4 h-4" />
+              {user.nickname}
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="text-[14px] font-medium text-text-secondary hover:text-red-500 transition-colors"
+            >
+              로그아웃
+            </button>
+          </>
+        ) : (
+          <Link
+            to="/login"
+            className="text-[14px] font-medium text-blue-600 hover:underline"
+          >
+            로그인
+          </Link>
+        )}
         
         {/* ❌ 기존 Link 제거 */}
         {/* <Link to="/login">로그인</Link> */}
