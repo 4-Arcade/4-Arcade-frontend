@@ -1,29 +1,51 @@
-import { useState } from 'react'
-import { Search } from 'lucide-react'
-import Navbar from '../components/Navbar'
-import QuizCard from '../components/QuizCard'
+import { useState, useEffect } from "react";
+import { Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-const categories = ['전체', 'K-POP', 'POP', 'OST', '게임음악', '기타']
+// Component
+import Navbar from "../components/Navbar";
+import QuizCard from "../components/QuizCard";
 
-const quizzes = [
-  { title: '2024 K-POP 히트곡 모음', category: 'K-POP', questionCount: 20, author: '뮤직러버', playCount: 1234 },
-  { title: '인기 POP 명곡 퀴즈', category: 'POP', questionCount: 15, author: '팝마스터', playCount: 856 },
-  { title: '애니메이션 OST 퀴즈', category: 'OST', questionCount: 25, author: '오타쿠킹', playCount: 2105 },
-  { title: '게임 BGM 맞추기', category: '게임음악', questionCount: 30, author: '게이머', playCount: 567 },
-  { title: '90년대 가요 퀴즈', category: 'K-POP', questionCount: 20, author: '레트로맨', playCount: 943 },
-  { title: '클래식 음악 퀴즈', category: '기타', questionCount: 15, author: '클래식팬', playCount: 312 },
-  { title: '2023 K-POP 결산', category: 'K-POP', questionCount: 25, author: '뮤직러버', playCount: 2890 },
-  { title: '영화 OST 베스트', category: 'OST', questionCount: 20, author: '영화광', playCount: 1567 },
-]
+// API
+import { getQuizList, Quiz } from "@/services/quizApi";
+
+const categories = ["전체", "K-POP", "POP", "OST", "게임음악", "기타"];
 
 export default function QuizList() {
-  const [activeCategory, setActiveCategory] = useState('전체')
+  const [activeCategory, setActiveCategory] = useState("전체");
+  const [quizList, setQuizList] = useState<Quiz[]>([]);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchQuizList = async () => {
+      try {
+        setLoading(true);
+
+        const res = await getQuizList(page, 12, activeCategory);
+
+        if (res.success) {
+          setQuizList(res.data.content);
+          setTotalPages(res.data.totalPages);
+        }
+      } catch (err) {
+        console.error("퀴즈 조회 실패:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuizList();
+  }, [page, activeCategory]);
 
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col">
       <Navbar />
       <div className="flex flex-col gap-8 px-20 py-10">
         {/* Header */}
+        {/* TODO : 퀴즈 검색 기능 수정 필요 */}
         <div className="flex items-center justify-between">
           <h1 className="text-[28px] font-bold text-text-primary">퀴즈 탐색</h1>
           <div className="flex items-center gap-2 bg-white border border-border rounded-[12px] px-4 py-2.5 w-80">
@@ -44,8 +66,8 @@ export default function QuizList() {
               onClick={() => setActiveCategory(cat)}
               className={`px-4 py-2 rounded-full text-[13px] font-medium cursor-pointer transition-colors ${
                 activeCategory === cat
-                  ? 'bg-blue-600 text-white font-semibold'
-                  : 'bg-white text-text-secondary border border-border hover:bg-bg-input'
+                  ? "bg-blue-600 text-white font-semibold"
+                  : "bg-white text-text-secondary border border-border hover:bg-bg-input"
               }`}
             >
               {cat}
@@ -55,11 +77,24 @@ export default function QuizList() {
 
         {/* Grid */}
         <div className="grid grid-cols-4 gap-6">
-          {quizzes.map((quiz) => (
-            <QuizCard key={quiz.title} {...quiz} />
-          ))}
+          {/* 퀴즈 카드들 */}
+          {loading ? (
+            <div className="col-span-4 text-center text-gray-400">
+              불러오는 중...
+            </div>
+          ) : (
+            quizList.map((quiz) => (
+              <button
+                key={quiz.id}
+                onClick={() => navigate(`/quiz/${quiz.id}`)}
+                className="h-66 w-full border border-gray-200 rounded-xl bg-white cursor-pointer hover:bg-blue-50 hover:shadow-md transition-all overflow-hidden"
+              >
+                <QuizCard {...quiz} />
+              </button>
+            ))
+          )}
         </div>
       </div>
     </div>
-  )
+  );
 }

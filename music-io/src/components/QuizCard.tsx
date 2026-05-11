@@ -4,7 +4,7 @@ interface QuizCardProps {
   title: string;
   category: string;
   questionCount: number;
-  author: string;
+  createdBy: string;
   playCount: number;
   onClick?: () => void;
 }
@@ -13,34 +13,44 @@ export default function QuizCard({
   title,
   category,
   questionCount,
-  author,
+  createdBy,
   playCount,
   onClick,
 }: QuizCardProps) {
   return (
     <div
-      className="w-80 bg-bg-card rounded-[16px] border border-border shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+      className="w-full h-full bg-bg-card rounded-[16px] border border-border shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow flex flex-col"
       onClick={onClick}
     >
-      <div className="w-full h-[180px] bg-blue-100 flex items-center justify-center relative">
+      {/* 썸네일 */}
+      <div className="w-full aspect-[16/9] bg-blue-100 flex items-center justify-center relative shrink-0">
         <Music className="w-12 h-12 text-blue-300" />
       </div>
-      <div className="flex flex-col gap-2.5 p-4">
-        <p className="text-[16px] font-semibold text-text-primary truncate">
+
+      {/* 내용 */}
+      <div className="flex flex-col flex-1 gap-2.5 p-4 min-h-0">
+        <p className="text-[16px] font-semibold text-text-primary break-words">
           {title}
         </p>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="bg-blue-50 text-blue-600 text-[11px] font-semibold px-2 py-1 rounded-[6px]">
             {category}
           </span>
+
           <span className="text-[12px] text-text-tertiary">
             {questionCount}문제
           </span>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[12px] text-text-tertiary">by {author}</span>
-          <div className="flex items-center gap-1 text-text-tertiary">
+
+        <div className="flex items-center justify-between mt-auto gap-2">
+          <span className="text-[12px] text-text-tertiary truncate">
+            by {createdBy}
+          </span>
+
+          <div className="flex items-center gap-1 text-text-tertiary shrink-0">
             <Play className="w-3 h-3" />
+
             <span className="text-[12px]">{playCount.toLocaleString()}</span>
           </div>
         </div>
