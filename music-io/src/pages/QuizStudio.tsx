@@ -1,98 +1,49 @@
-import { Plus, Music, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+// Component
 import Navbar from "../components/Navbar";
-import InputField from "../components/InputField";
-import Button from "../components/Button";
 import QuizCreateModal from "../components/QuizCreateModal";
 
-const questions = [
-  { id: 1, title: "문제 1", url: "https://youtube.com/watch?v=..." },
-  { id: 2, title: "문제 2", url: "https://youtube.com/watch?v=..." },
-  { id: 3, title: "문제 3", url: "https://youtube.com/watch?v=..." },
-];
-
 export default function QuizStudio() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
 
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col">
       <Navbar />
-      <div className="flex gap-8 px-20 py-8 flex-1">
-        {/* Left - Quiz Info */}
-        <div className="w-[360px] flex flex-col gap-5">
-          <h2 className="text-xl font-bold text-text-primary">퀴즈 정보</h2>
-          <InputField label="퀴즈 제목" placeholder="퀴즈 제목을 입력하세요" />
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[13px] font-medium text-text-secondary">
-              카테고리
-            </label>
-            <select className="bg-bg-input border border-border rounded-[12px] px-4 py-3 text-sm text-text-primary outline-none focus:border-border-focus">
-              <option>K-POP</option>
-              <option>POP</option>
-              <option>OST</option>
-              <option>게임음악</option>
-              <option>기타</option>
-            </select>
-          </div>
-          <div className="flex items-center justify-between bg-bg-input rounded-[12px] px-4 py-3">
-            <span className="text-sm text-text-secondary">공개 여부</span>
-            <div className="w-10 h-6 bg-blue-600 rounded-full relative cursor-pointer">
-              <div className="absolute right-0.5 top-0.5 w-5 h-5 bg-white rounded-full" />
-            </div>
-          </div>
-          <div className="flex flex-col gap-3 mt-2">
-            <Button variant="large" className="w-full">
-              저장하기
-            </Button>
-            <Button variant="ghost" className="w-full text-error">
-              삭제하기
-            </Button>
-          </div>
+
+      <div className="w-full max-w-6xl mx-auto px-4 mt-4">
+        {/* 검색 영역 */}
+        <div className="flex gap-2">
+          <input
+            placeholder="검색어를 입력하세요."
+            className="flex-1 border px-3 py-2 text-sm border-blue-500 rounded-md"
+          />
+
+          <button className="px-4 bg-blue-600 text-white text-sm hover:bg-blue-700 rounded-md cursor-pointer flex items-center justify-center">
+            <Search size={18} />
+          </button>
         </div>
 
-        {/* Right - Questions */}
-        <div className="flex-1 flex flex-col gap-5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-text-primary">
-              문제 목록 ({questions.length})
-            </h2>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-1.5 bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-[12px] cursor-pointer hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4" />
-              문제 추가
-            </button>
-          </div>
-          <div className="flex flex-col gap-3">
-            {questions.map((q) => (
-              <div
-                key={q.id}
-                className="flex items-center gap-3 bg-white rounded-xl border border-border px-4 py-3"
-              >
-                <span className="text-sm font-bold text-blue-600 w-6">
-                  {q.id}
-                </span>
-                <Music className="w-4 h-4 text-text-tertiary" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-text-primary">
-                    {q.title}
-                  </p>
-                  <p className="text-xs text-text-tertiary truncate">{q.url}</p>
-                </div>
-                <button className="text-text-tertiary hover:text-error cursor-pointer">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
+        {/* 카드 영역 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-6">
+          {/* 퀴즈 만들기 카드 */}
+          <button
+            onClick={() => setOpenModal(true)}
+            className="h-66 border-2 border-dashed border-blue-400 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50 transition-all hover:scale-[1.02]"
+          >
+            <div className="text-5xl text-blue-500">+</div>
+
+            <p className="mt-3 text-sm font-medium text-gray-600">
+              퀴즈 만들기
+            </p>
+          </button>
         </div>
       </div>
 
-      <QuizCreateModal
-        open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
+      {/* 모달 */}
+      <QuizCreateModal open={openModal} onClose={() => setOpenModal(false)} />
     </div>
   );
 }
