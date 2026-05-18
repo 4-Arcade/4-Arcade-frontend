@@ -19,6 +19,7 @@ export default function QuizList() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  /* 퀴즈 리스트 조회 */
   useEffect(() => {
     const fetchQuizList = async () => {
       try {
@@ -29,9 +30,14 @@ export default function QuizList() {
         if (res.success) {
           setQuizList(res.data.content);
           setTotalPages(res.data.totalPages);
+        } else {
+          alert(res.message);
         }
-      } catch (err) {
-        console.error("퀴즈 조회 실패:", err);
+      } catch (e) {
+        console.error("퀴즈 조회 실패:", e);
+
+        const error = e as Error;
+        alert(error.message);
       } finally {
         setLoading(false);
       }

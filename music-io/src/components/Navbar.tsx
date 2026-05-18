@@ -39,7 +39,7 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
       <div className="flex items-center gap-8">
         {navLink("/", "홈")}
         {navLink("/quiz", "퀴즈 탐색")}
-        {navLink("/quiz/studio", "퀴즈 제작")}
+        {/* {navLink("/quiz/studio", "퀴즈 제작")} */}
       </div>
       <div className="flex items-center gap-3">
         {user ? (

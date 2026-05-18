@@ -4,7 +4,7 @@ interface QuizCardProps {
   title: string;
   category: string;
   questionCount: number;
-  createdBy: string;
+  createdBy?: string;
   playCount: number;
   onClick?: () => void;
 }
