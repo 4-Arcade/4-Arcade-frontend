@@ -10,6 +10,15 @@ export interface Quiz {
   questionCount: number;
 }
 
+export interface MyQuiz {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  playCount: number;
+  questionCount: number;
+}
+
 export interface QuizPage {
   content: Quiz[];
   totalElements: number;
@@ -55,7 +64,7 @@ export async function getQuizList(
   page = 0,
   size = 12,
   category?: string
-): Promise<QuizListResponse> {
+): Promise<QuizListResponse | any> {
   let url = `${BASE_URL}/quiz?page=${page}&size=${size}`;
 
   if (category && category !== "전체") {
@@ -69,15 +78,33 @@ export async function getQuizList(
     },
   });
 
-  if (!res.ok) {
-    throw new Error("API 요청 실패");
-  }
+  try {
+    const data = await res.json();
 
-  return res.json();
+    if (data.success) {
+      return {
+        success: true,
+        data: data.data,
+      };
+    } else {
+      return {
+        success: false,
+        message: data.error.message,
+      };
+    }
+  } catch (e) {
+    const error = e as Error;
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
 }
 
 /* 퀴즈 상세 조회 */
-export async function getQuizById(id: string): Promise<QuizDetailResponse> {
+export async function getQuizById(
+  id: string
+): Promise<QuizDetailResponse | any> {
   const res = await fetch(`${BASE_URL}/quiz/${id}`, {
     method: "GET",
     headers: {
@@ -85,11 +112,31 @@ export async function getQuizById(id: string): Promise<QuizDetailResponse> {
     },
   });
 
-  return res.json();
+  try {
+    const data = await res.json();
+
+    if (data.success) {
+      return {
+        success: true,
+        data: data.data,
+      };
+    } else {
+      return {
+        success: false,
+        message: data.error.message,
+      };
+    }
+  } catch (e) {
+    const error = e as Error;
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
 }
 
-/* 퀴즈 업데이트 */
-export async function updateQuiz(quizId: string, data: any) {
+/* 퀴즈 업데이트 (인증 필요) */
+export async function updateQuiz(quizId: string, payload: any) {
   const token = localStorage.getItem("accessToken");
 
   const res = await fetch(`${BASE_URL}/quiz/${quizId}`, {
@@ -98,24 +145,30 @@ export async function updateQuiz(quizId: string, data: any) {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
 
-  const text = await res.text();
-
-  // 응답이 없으면 안전하게 처리
-  if (!text) {
-    return { success: res.ok };
-  }
-
   try {
-    return JSON.parse(text);
+    const data = await res.json();
+
+    if (data.success) {
+      return { success: true };
+    } else {
+      return {
+        success: false,
+        message: data.error.message,
+      };
+    }
   } catch (e) {
-    return { success: res.ok };
+    const error = e as Error;
+    return {
+      success: false,
+      message: error.message,
+    };
   }
 }
 
-/* 퀴즈 삭제 */
+/* 퀴즈 삭제 (인증 필요) */
 export async function deleteQuiz(quizId: string) {
   const token = localStorage.getItem("accessToken");
 
@@ -127,6 +180,90 @@ export async function deleteQuiz(quizId: string) {
     },
   });
 
-  const text = await res.text();
-  return text ? JSON.parse(text) : { success: true };
+  try {
+    const data = await res.json();
+
+    if (data.success) {
+      return { success: true };
+    } else {
+      return {
+        success: false,
+        message: data.error.message,
+      };
+    }
+  } catch (e) {
+    const error = e as Error;
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
+}
+
+/* 퀴즈 생성 (인증 필요) */
+export async function createQuiz(payload: any) {
+  const token = localStorage.getItem("accessToken");
+
+  const res = await fetch(`${BASE_URL}/quiz`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  try {
+    const data = await res.json();
+
+    if (data.success) {
+      return { success: true };
+    } else {
+      return {
+        success: false,
+        message: data.error.message,
+      };
+    }
+  } catch (e) {
+    const error = e as Error;
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
+}
+
+/* 내 퀴즈 조회 (인증 필요) */
+export async function getMyQuizList() {
+  const token = localStorage.getItem("accessToken");
+
+  const res = await fetch(`${BASE_URL}/mypage/quiz`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  try {
+    const data = await res.json();
+
+    if (data.success) {
+      return {
+        success: true,
+        data: data.data,
+      };
+    } else {
+      return {
+        success: false,
+        message: data.error.message,
+      };
+    }
+  } catch (e) {
+    const error = e as Error;
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
 }

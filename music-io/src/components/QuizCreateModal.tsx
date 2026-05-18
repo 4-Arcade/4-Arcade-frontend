@@ -1,7 +1,9 @@
 import { useState } from "react";
 import "rc-slider/assets/index.css";
-
 import { X, Plus, ChevronDown } from "lucide-react";
+
+// API
+import { createQuiz } from "@/services/quizApi";
 
 type Props = {
   open: boolean;
@@ -19,9 +21,7 @@ const QuizCreateModal = ({ open, onClose }: Props) => {
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
 
-  {
-    /* 퀴즈 생성 로직 */
-  }
+  /* 퀴즈 생성 로직 */
   const handleSubmit = async () => {
     const payload = {
       title,
@@ -31,25 +31,18 @@ const QuizCreateModal = ({ open, onClose }: Props) => {
     };
 
     try {
-      const token = localStorage.getItem("accessToken");
+      const res = await createQuiz(payload);
 
-      const res = await fetch("https://four-arcade-backend.onrender.com/quiz", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        throw new Error("전송 실패");
+      if (res.success) {
+        alert("퀴즈가 생성되었습니다.");
+      } else {
+        alert(res.message);
       }
+    } catch (e) {
+      console.error("에러:", e);
 
-      const data = await res.json();
-      console.log("성공:", data);
-    } catch (err) {
-      console.error("에러:", err);
+      const error = e as Error;
+      alert(error.message);
     }
   };
 

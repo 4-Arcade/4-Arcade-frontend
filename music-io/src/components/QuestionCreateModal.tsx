@@ -2,8 +2,17 @@ import { useEffect, useState } from "react";
 import Slider from "rc-slider";
 import { Clock, ChevronRight } from "lucide-react";
 
+// API
+import {
+  createQuestion,
+  updateQuestion,
+  // getQuestionById,
+} from "@/services/questionApi";
+
 type Props = {
   open: boolean;
+  quizId: string;
+  questionId?: string | null;
   onClose: () => void;
 };
 
@@ -21,7 +30,7 @@ const formatTime = (sec: number) => {
   return `${h}:${m}:${s}`;
 };
 
-const QuestionCreateModal = ({ open, onClose }: Props) => {
+const QuestionCreateModal = ({ open, quizId, questionId, onClose }: Props) => {
   const [url, setUrl] = useState("");
   const [isInvalid, setIsInvalid] = useState(false);
   const [range, setRange] = useState<[number, number]>([243, 273]);
@@ -29,8 +38,10 @@ const QuestionCreateModal = ({ open, onClose }: Props) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [answer, setAnswer] = useState("");
   const [answers, setAnswers] = useState<string[]>([]);
-
+  const isEditMode = !!questionId;
   const durationButtons = [1, 5, 10, 30];
+
+  /* 영상 길이 측정 로직 */
   const handleDurationClick = (sec: number) => {
     setRange(([start]) => {
       const newEnd = Math.min(start + sec, duration); // 영상 길이 초과 방지
@@ -38,7 +49,7 @@ const QuestionCreateModal = ({ open, onClose }: Props) => {
     });
   };
 
-  // 정답 입력
+  /* 정답 입력 */
   const handleAddAnswer = () => {
     if (!answer.trim()) return;
 
@@ -46,7 +57,7 @@ const QuestionCreateModal = ({ open, onClose }: Props) => {
     setAnswer(""); // 입력 초기화
   };
 
-  // 유튜브 URL 참고해서 영상 가져오기
+  /* 유튜브 URL 참고해서 영상 불러오는 로직 */
   const getYoutubeId = (url: string): string | null => {
     if (!url) return null;
 
@@ -67,7 +78,35 @@ const QuestionCreateModal = ({ open, onClose }: Props) => {
     return hours * 3600 + minutes * 60 + seconds;
   };
 
-  // Youtube URL Validation
+  /* 문제 생성 */
+  const handleSubmit = async () => {
+    try {
+      const payload = {
+        youtubeUrl: url,
+        startSec: range[0],
+        endSec: range[1],
+        answers: answers,
+        hint: "",
+      };
+
+      if (isEditMode && questionId) {
+        await updateQuestion(quizId, questionId, payload);
+        alert("문제가 수정되었습니다.");
+      } else {
+        const res = await createQuestion(quizId, payload);
+        if (res.success) {
+          alert("문제가 생성되었습니다.");
+          onClose();
+        } else {
+          alert(res.message);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  /* Youtube URL Validation */
   useEffect(() => {
     const videoId = getYoutubeId(url);
 
@@ -119,10 +158,53 @@ const QuestionCreateModal = ({ open, onClose }: Props) => {
     fetchVideoData();
   }, [url]);
 
-  // Youtube URL 변경 시 영상 길이 초기화
+  /* Youtube URL 변경 시 영상 길이 초기화 로직 */
   useEffect(() => {
-    setRange([0, duration]);
+    if (!questionId) {
+      setRange([0, duration]);
+    }
   }, [duration]);
+
+  /* 문제 생성인지, 수정인지 구분하는 로직 */
+  useEffect(() => {
+    if (!open) return;
+
+    const fetchQuestion = async () => {
+      try {
+        /* TODO : 백단 로직 완성 시 주석 해제 및 기능 테스트 필요 */
+        // 문제 생성일 경우
+        // if (!questionId) {
+        setUrl("");
+        setRange([0, 0]);
+        setAnswers([]);
+        return;
+        // }
+
+        /* TODO : 백단 로직 완성 시 주석 해제 및 기능 테스트 필요 */
+        // // 문제 수정일 경우
+        // const res = await getQuestionById(quizId, questionId);
+        // // API 호출 성공
+        // if (res.success) {
+        //   const data = res.data;
+
+        //   setUrl(data.youtubeUrl);
+        //   setRange([data.startSec, data.endSec]);
+        //   setAnswers(data.answers || []);
+        // }
+        // // API 호출 실패
+        // else {
+        //   alert(res.message);
+        // }
+      } catch (e) {
+        console.error("문제 상세 조회 실패:", e);
+
+        const error = e as Error;
+        alert(error.message);
+      }
+    };
+
+    fetchQuestion();
+  }, [questionId, open]);
 
   if (!open) return null;
 
@@ -132,7 +214,9 @@ const QuestionCreateModal = ({ open, onClose }: Props) => {
         className="w-[720px] bg-white rounded-[15px] px-6 pt-4 pb-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-base font-semibold mb-4">문제 생성</h2>
+        <h2 className="text-base font-semibold mb-4">
+          {isEditMode ? "문제 수정" : "문제 생성"}
+        </h2>
         <hr className="border-t border-gray-200 mb-7 -mx-6" />
 
         <div className="flex gap-8">
@@ -278,7 +362,10 @@ const QuestionCreateModal = ({ open, onClose }: Props) => {
         </p>
 
         <div className="flex justify-center gap-4 mt-6">
-          <button className="px-8 py-1 bg-blue-600 text-white rounded-[6px] cursor-pointer">
+          <button
+            onClick={handleSubmit}
+            className="px-8 py-1 bg-blue-600 text-white rounded-[6px] cursor-pointer"
+          >
             확인
           </button>
           <button

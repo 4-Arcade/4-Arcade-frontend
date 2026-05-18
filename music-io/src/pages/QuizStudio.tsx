@@ -1,13 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // Component
 import Navbar from "../components/Navbar";
 import QuizCreateModal from "../components/QuizCreateModal";
+import QuizCard from "../components/QuizCard";
+
+// API
+import { MyQuiz, getMyQuizList } from "@/services/quizApi";
 
 export default function QuizStudio() {
+  const [loading, setLoading] = useState(false);
   const [openModal, setOpenModal] = useState(false);
+  const [myQuizList, setMyQuizList] = useState<MyQuiz[]>([]);
+  const navigate = useNavigate();
+
+  /* 내 퀴즈 리스트 조회 */
+  useEffect(() => {
+    const fetchMyQuizList = async () => {
+      try {
+        setLoading(true);
+
+        const res = await getMyQuizList();
+        if (res.success) {
+          setMyQuizList(res.data.content);
+        } else {
+          alert(res.message);
+        }
+      } catch (e) {
+        console.error("퀴즈 조회 실패:", e);
+
+        const error = e as Error;
+        alert(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyQuizList();
+  }, []);
 
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col">
@@ -39,6 +71,23 @@ export default function QuizStudio() {
               퀴즈 만들기
             </p>
           </button>
+
+          {/* 내 퀴즈들 */}
+          {loading ? (
+            <div className="col-span-4 text-center text-gray-400">
+              불러오는 중...
+            </div>
+          ) : (
+            myQuizList.map((quiz) => (
+              <button
+                key={quiz.id}
+                onClick={() => navigate(`/quiz/edit/${quiz.id}`)}
+                className="h-66 w-full border border-gray-200 rounded-xl bg-white cursor-pointer hover:bg-blue-50 hover:shadow-md transition-all overflow-hidden"
+              >
+                <QuizCard {...quiz} />
+              </button>
+            ))
+          )}
         </div>
       </div>
 
