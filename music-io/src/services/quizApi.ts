@@ -65,12 +65,17 @@ export interface QuizDetailResponse {
 export async function getQuizList(
   page = 0,
   size = 12,
-  category?: string
+  category?: string,
+  keyword?: string
 ): Promise<QuizListResponse | any> {
   let url = `/quiz?page=${page}&size=${size}`;
 
   if (category && category !== "전체") {
     url += `&category=${encodeURIComponent(category)}`;
+  }
+
+  if (keyword) {
+    url += `&keyword=${encodeURIComponent(keyword)}`;
   }
 
   const res = await apiFetch(url, {
