@@ -30,6 +30,7 @@ export default function LoginModal({
       const res = await login(email, password);
       if (res.success && res.data) {
         localStorage.setItem("accessToken", res.data.accessToken);
+        localStorage.setItem("refreshToken", res.data.refreshToken);
         setUser(res.data.user);
         onClose();
         navigate("/");

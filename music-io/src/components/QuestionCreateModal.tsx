@@ -6,7 +6,7 @@ import { Clock, ChevronRight } from "lucide-react";
 import {
   createQuestion,
   updateQuestion,
-  // getQuestionById,
+  getQuestionById,
 } from "@/services/questionApi";
 
 type Props = {
@@ -109,7 +109,7 @@ const QuestionCreateModal = ({ open, quizId, questionId, onClose }: Props) => {
   /* Youtube URL Validation */
   useEffect(() => {
     const videoId = getYoutubeId(url);
-
+    console.log("call1");
     // 1. 빈 값
     if (!url.trim()) {
       setIsInvalid(false);
@@ -171,30 +171,28 @@ const QuestionCreateModal = ({ open, quizId, questionId, onClose }: Props) => {
 
     const fetchQuestion = async () => {
       try {
-        /* TODO : 백단 로직 완성 시 주석 해제 및 기능 테스트 필요 */
         // 문제 생성일 경우
-        // if (!questionId) {
-        setUrl("");
-        setRange([0, 0]);
-        setAnswers([]);
-        return;
-        // }
+        if (!questionId) {
+          setUrl("");
+          setRange([0, 0]);
+          setAnswers([]);
+          return;
+        }
 
-        /* TODO : 백단 로직 완성 시 주석 해제 및 기능 테스트 필요 */
-        // // 문제 수정일 경우
-        // const res = await getQuestionById(quizId, questionId);
-        // // API 호출 성공
-        // if (res.success) {
-        //   const data = res.data;
+        // 문제 수정일 경우
+        const res = await getQuestionById(quizId, questionId);
+        // API 호출 성공
+        if (res.success) {
+          const data = res.data.data;
 
-        //   setUrl(data.youtubeUrl);
-        //   setRange([data.startSec, data.endSec]);
-        //   setAnswers(data.answers || []);
-        // }
-        // // API 호출 실패
-        // else {
-        //   alert(res.message);
-        // }
+          setUrl(data.youtubeUrl);
+          setRange([data.startSec, data.endSec]);
+          setAnswers(data.answers || []);
+        }
+        // API 호출 실패
+        else {
+          alert(res.message);
+        }
       } catch (e) {
         console.error("문제 상세 조회 실패:", e);
 
