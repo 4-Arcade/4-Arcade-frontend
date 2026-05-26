@@ -122,43 +122,43 @@ export async function deleteQuestion(quizId: string, questionId: string) {
 
 // TODO : 기능 테스트 필요
 /* 문제 상세 조회 (인증 필요) */
-// export async function getQuestionById(quizId: string, questionId: string) {
-//   const token = localStorage.getItem("accessToken");
+export async function getQuestionById(quizId: string, questionId: string) {
+  const token = localStorage.getItem("accessToken");
 
-//   const res = await fetch(
-//     `${BASE_URL}/quiz/${quizId}/questions/${questionId}`,
-//     {
-//       method: "GET",
-//       headers: {
-//         "Content-Type": "application/json",
-//         Authorization: `Bearer ${token}`,
-//       },
-//     }
-//   );
+  const res = await fetch(
+    `${BASE_URL}/quiz/${quizId}/questions/${questionId}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
-//   try {
-//     const data = await res.json();
+  try {
+    const data = await res.json();
 
-//     // 문제 삭제 성공했을 경우
-//     if (data.success) {
-//       return {
-//         success: true,
-//         data: data,
-//       };
-//     }
-//     // 문제 삭제 실패했을 경우
-//     else {
-//       return {
-//         success: false,
-//         message: data.error.message,
-//       };
-//     }
-//   } catch (e) {
-//     const error = e as Error;
+    // 문제 상세 조회 성공했을 경우
+    if (data.success) {
+      return {
+        success: true,
+        data: data,
+      };
+    }
+    // 문제 상세 조회 실패했을 경우
+    else {
+      return {
+        success: false,
+        message: data.error.message,
+      };
+    }
+  } catch (e) {
+    const error = e as Error;
 
-//     return {
-//       success: false,
-//       message: error.message,
-//     };
-//   }
-// }
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
+}
