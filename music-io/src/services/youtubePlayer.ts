@@ -20,7 +20,8 @@ declare global {
 let apiPromise: Promise<void> | null = null;
 
 export function loadYouTubeApi(): Promise<void> {
-  if (typeof window === "undefined") return Promise.reject();
+  if (typeof window === "undefined")
+    return Promise.reject(new Error("window is not available"));
   if (window.YT && window.YT.Player) return Promise.resolve();
   if (apiPromise) return apiPromise;
 

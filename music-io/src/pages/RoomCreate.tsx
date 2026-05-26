@@ -21,7 +21,9 @@ export default function RoomCreate() {
   const toast = useToast();
   const { setEntry } = useRoom();
 
-  const [nickname, setNickname] = useState("");
+  const [nickname, setNickname] = useState(
+    () => localStorage.getItem(LAST_NICKNAME_KEY) ?? ""
+  );
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
 
   const [questionCount, setQuestionCount] = useState(10);
@@ -101,7 +103,7 @@ export default function RoomCreate() {
             label="닉네임"
             placeholder="1~16자 닉네임을 입력해주세요"
             value={nickname}
-            maxLength={16}
+            maxLength={MAX_NICKNAME_LENGTH}
             onChange={(e) => setNickname(e.target.value)}
           />
 

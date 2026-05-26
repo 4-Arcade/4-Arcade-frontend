@@ -12,12 +12,21 @@ import {
   type ConnectionStatus,
   type RoomWsClient,
 } from "../services/wsClient";
+import { getErrorMessage } from "../services/errorMessages";
 import { useToast } from "./ToastContext";
 import type {
   RoomEntry,
   RoomStateSnapshot,
   GameResultData,
 } from "../services/roomTypes";
+
+/** 입장 거부 단계(=한 번도 ws.onopen 못 본 상태)에서 의미 있는 errorCode 집합 */
+const ENTRY_REJECT_CODES = new Set([
+  "ROOM_NOT_FOUND",
+  "ROOM_FULL",
+  "GAME_IN_PROGRESS",
+  "NICKNAME_TAKEN",
+]);
 
 export type {
   RoomStatus,
@@ -76,12 +85,17 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     setCountdown(null);
   }, []);
 
+  // entry 객체 자체가 아니라 roomId/nickname 만 deps 로 둬서
+  // 동일 방·동일 닉네임이면 ws 가 재연결되지 않도록 한다.
+  const entryRoomId = entry?.roomId;
+  const entryNickname = entry?.nickname;
+
   useEffect(() => {
-    if (!entry) return;
+    if (!entryRoomId || !entryNickname) return;
 
     const client = connectRoom({
-      roomId: entry.roomId,
-      nickname: entry.nickname,
+      roomId: entryRoomId,
+      nickname: entryNickname,
       onConnected: (finalNickname) => {
         setMyNickname(finalNickname);
       },
@@ -94,9 +108,13 @@ export function RoomProvider({ children }: { children: ReactNode }) {
           "error"
         );
       },
-      onClose: () => {
-        // 모든 재시도 실패 → 방을 떠나고(각 페이지가 홈으로 이동) 안내
-        toast.show("서버 연결이 끊겼습니다. 홈으로 이동합니다.", "error");
+      onClose: (_code, _reason, lastErrorCode) => {
+        // 입장 거부 사유가 명확하면 그 메시지로, 아니면 일반 끊김 메시지로 안내
+        const message =
+          lastErrorCode && ENTRY_REJECT_CODES.has(lastErrorCode)
+            ? getErrorMessage(lastErrorCode)
+            : "서버 연결이 끊겼습니다. 홈으로 이동합니다.";
+        toast.show(message, "error");
         leave();
       },
     });
@@ -196,7 +214,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
       setWs(null);
       setCountdown(null);
     };
-  }, [entry, toast, leave]);
+  }, [entryRoomId, entryNickname, toast, leave]);
 
   const isHost =
     !!state && !!myNickname && state.hostNickname === myNickname;

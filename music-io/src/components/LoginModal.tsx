@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Music, X } from "lucide-react";
 import InputField from "./InputField";
 import Button from "./Button";
@@ -16,7 +16,7 @@ export default function LoginModal({
   onSwitchToRegister,
 }: LoginModalProps) {
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { setAuth } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -29,8 +29,7 @@ export default function LoginModal({
     try {
       const res = await login(email, password);
       if (res.success && res.data) {
-        localStorage.setItem("accessToken", res.data.accessToken);
-        setUser(res.data.user);
+        setAuth(res.data.user, res.data.accessToken);
         onClose();
         navigate("/");
       } else {

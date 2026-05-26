@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Music, Send, CheckCircle2, SkipForward } from "lucide-react";
 import { useRoom } from "../context/RoomContext";
@@ -71,43 +71,42 @@ export default function GamePlaying() {
   }, [question]);
 
   // 매 문제마다 새 YT.Player를 생성한다 (videoId를 src에 박아 autoplay 정책 통과)
-  function spawnPlayer(data: {
-    videoId: string;
-    startSec: number;
-    endSec: number;
-  }) {
-    const wrapper = playerWrapperRef.current;
-    if (!wrapper) return;
+  const spawnPlayer = useCallback(
+    (data: { videoId: string; startSec: number; endSec: number }) => {
+      const wrapper = playerWrapperRef.current;
+      if (!wrapper) return;
 
-    // 기존 player 정리
-    ytRef.current?.destroy();
-    ytRef.current = null;
+      // 기존 player 정리
+      ytRef.current?.destroy();
+      ytRef.current = null;
 
-    // wrapper 안에 새 target div 생성 (YT.Player는 div를 iframe으로 치환)
-    wrapper.innerHTML = "";
-    const target = document.createElement("div");
-    target.id = "yt-player-target";
-    wrapper.appendChild(target);
+      // wrapper 안에 새 target div 생성 (YT.Player는 div를 iframe으로 치환)
+      wrapper.innerHTML = "";
+      const target = document.createElement("div");
+      target.id = "yt-player-target";
+      wrapper.appendChild(target);
 
-    createYtPlayer({
-      containerId: "yt-player-target",
-      videoId: data.videoId,
-      startSec: data.startSec,
-      endSec: data.endSec,
-      onError: (code) => {
-        const q = questionRef.current;
-        if (!q) return;
-        ws?.send("question:playback_error", {
-          questionIndex: q.index,
-          errorCode: code,
-        });
-      },
-    })
-      .then((handle) => {
-        ytRef.current = handle;
+      createYtPlayer({
+        containerId: "yt-player-target",
+        videoId: data.videoId,
+        startSec: data.startSec,
+        endSec: data.endSec,
+        onError: (code) => {
+          const q = questionRef.current;
+          if (!q) return;
+          ws?.send("question:playback_error", {
+            questionIndex: q.index,
+            errorCode: code,
+          });
+        },
       })
-      .catch((e) => console.error("[yt] create error", e));
-  }
+        .then((handle) => {
+          ytRef.current = handle;
+        })
+        .catch((e) => console.error("[yt] create error", e));
+    },
+    [ws]
+  );
 
   // entry 없으면 홈으로
   useEffect(() => {
@@ -146,6 +145,11 @@ export default function GamePlaying() {
     if (!state?.gameProgress) return;
     const gp = state.gameProgress;
     const questionNumber = gp.currentQuestionIndex + 1; // 백엔드는 0-based, UI 표시는 1-based
+    // 백엔드가 number(ms) / ISO string 둘 중 어느 형태로 보내든 안전하게 ms 로 정규화
+    const startedAtMs =
+      typeof gp.questionStartedAt === "number"
+        ? gp.questionStartedAt
+        : Date.parse(gp.questionStartedAt as unknown as string);
     setQuestion((prev) => {
       if (prev && prev.index === questionNumber) return prev;
       return {
@@ -153,7 +157,7 @@ export default function GamePlaying() {
         totalCount: gp.totalQuestionCount,
         timeLimit: gp.timeLimit,
         hint: null,
-        startedAt: new Date(gp.questionStartedAt).getTime(),
+        startedAt: Number.isFinite(startedAtMs) ? startedAtMs : Date.now(),
       };
     });
   }, [state?.gameProgress]);
@@ -179,8 +183,7 @@ export default function GamePlaying() {
       ytRef.current = null;
       apiReadyRef.current = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [spawnPlayer]);
 
   // 게임 이벤트 구독 (game:countdown 은 RoomContext 가 담당)
   useEffect(() => {
@@ -270,9 +273,7 @@ export default function GamePlaying() {
     );
 
     return () => offs.forEach((o) => o());
-    // spawnPlayer 는 매 렌더 새로 생성되는 함수라 의존성에 넣으면 구독이 재설정된다 (의도적 제외)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ws, toast]);
+  }, [ws, toast, spawnPlayer]);
 
   // 타이머
   useEffect(() => {

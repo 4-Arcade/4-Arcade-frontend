@@ -4,8 +4,9 @@ const WS_BASE_URL =
   import.meta.env.VITE_WS_BASE_URL ?? "wss://four-arcade-backend.onrender.com";
 const DEV = import.meta.env.DEV;
 const MAX_NICKNAME_RETRY = 5;
-const MAX_RECONNECT_TRIES = 6; // ~30초 (5초 간격)
-const RECONNECT_INTERVAL_MS = 5000;
+const MAX_RECONNECT_TRIES = 6;
+const RECONNECT_BASE_MS = 1000;
+const RECONNECT_MAX_MS = 15000;
 
 interface WsMessage {
   event: string;
@@ -32,10 +33,16 @@ export interface ConnectOptions {
   onConnected?: (finalNickname: string) => void;
   /** MAX_NICKNAME_RETRY 초과 시 호출 */
   onNicknameExhausted?: () => void;
-  /** 연결 종료 (모든 재시도 실패 포함). */
-  onClose?: (code: number, reason: string) => void;
+  /** 연결 종료 (모든 재시도 실패 포함). lastErrorCode 는 close 직전 수신한 error 페이로드의 errorCode (있다면). */
+  onClose?: (code: number, reason: string, lastErrorCode?: string) => void;
   /** 상태 변화 알림 */
   onStatusChange?: (status: ConnectionStatus) => void;
+}
+
+/** exponential backoff with full jitter. attempt 는 1 부터 시작 */
+function computeBackoff(attempt: number): number {
+  const exp = Math.min(RECONNECT_MAX_MS, RECONNECT_BASE_MS * 2 ** (attempt - 1));
+  return Math.floor(Math.random() * exp);
 }
 
 export function connectRoom(opts: ConnectOptions): RoomWsClient {
@@ -47,6 +54,8 @@ export function connectRoom(opts: ConnectOptions): RoomWsClient {
   let closedByUser = false;
   let reconnectAttempt = 0;
   let hasEverConnected = false;
+  /** close 직전 마지막으로 수신한 error 의 errorCode. onClose 에 전달해 입장 거부 사유를 구분한다. */
+  let lastErrorCode: string | undefined;
 
   function buildUrl(nickname: string): string {
     const params = new URLSearchParams({
@@ -69,19 +78,24 @@ export function connectRoom(opts: ConnectOptions): RoomWsClient {
   }
 
   function open() {
+    const reopeningForNickname = isRetryingNickname;
     isRetryingNickname = false;
     const nickname =
       nicknameAttempt === 0
         ? opts.nickname
         : `${opts.nickname}#${nicknameAttempt + 1}`;
     currentNickname = nickname;
-    opts.onStatusChange?.(hasEverConnected ? "reconnecting" : "connecting");
+    // 닉네임 재시도 중에는 동일 상태 알림이 깜빡임을 유발하므로 스킵
+    if (!reopeningForNickname) {
+      opts.onStatusChange?.(hasEverConnected ? "reconnecting" : "connecting");
+    }
     ws = new WebSocket(buildUrl(nickname));
 
     ws.onopen = () => {
       hasEverConnected = true;
       reconnectAttempt = 0;
       nicknameAttempt = 0; // 정상 연결 성공 시 카운터 리셋 (이후 재연결 중 NICKNAME_TAKEN 누적 방지)
+      lastErrorCode = undefined; // 이전 시도의 에러 코드가 다음 close 에 잘못 노출되지 않도록 초기화
       opts.onStatusChange?.("open");
       opts.onConnected?.(currentNickname);
     };
@@ -107,25 +121,25 @@ export function connectRoom(opts: ConnectOptions): RoomWsClient {
 
       const errorCode = (msg.data as { errorCode?: string } | null)?.errorCode;
 
-      // 닉네임 충돌 → 접미사 붙여 재연결
-      if (
-        msg.event === "error" &&
-        errorCode === "NICKNAME_TAKEN" &&
-        nicknameAttempt < MAX_NICKNAME_RETRY - 1
-      ) {
-        nicknameAttempt += 1;
-        isRetryingNickname = true;
-        try {
-          ws?.close();
-        } catch {
-          /* noop */
-        }
-        setTimeout(() => open(), 50);
-        return;
+      if (msg.event === "error" && errorCode) {
+        lastErrorCode = errorCode;
       }
 
+      // 닉네임 충돌 처리: 재시도 여유가 있으면 접미사 붙여 재연결, 소진 시엔 콜백만 호출
       if (msg.event === "error" && errorCode === "NICKNAME_TAKEN") {
-        opts.onNicknameExhausted?.();
+        if (nicknameAttempt < MAX_NICKNAME_RETRY - 1) {
+          nicknameAttempt += 1;
+          isRetryingNickname = true;
+          try {
+            ws?.close();
+          } catch {
+            /* noop */
+          }
+          setTimeout(() => open(), 50);
+        } else {
+          opts.onNicknameExhausted?.();
+        }
+        return; // 어느 분기든 dispatch 로 흘려보내지 않음 (구독자 측 중복 처리 방지)
       }
 
       dispatch(msg.event, msg.data);
@@ -141,22 +155,23 @@ export function connectRoom(opts: ConnectOptions): RoomWsClient {
       // 한 번도 연결된 적이 없으면 (=초기 진입 실패) 재연결 시도하지 않음
       if (!hasEverConnected) {
         opts.onStatusChange?.("closed");
-        opts.onClose?.(e.code, e.reason);
+        opts.onClose?.(e.code, e.reason, lastErrorCode);
         return;
       }
 
-      // 비정상 끊김 → 자동 재연결 시도
+      // 비정상 끊김 → 자동 재연결 시도 (exponential backoff + jitter)
       if (reconnectAttempt < MAX_RECONNECT_TRIES) {
         reconnectAttempt += 1;
         opts.onStatusChange?.("reconnecting");
+        const delay = computeBackoff(reconnectAttempt);
         setTimeout(() => {
           if (!closedByUser) open();
-        }, RECONNECT_INTERVAL_MS);
+        }, delay);
         return;
       }
 
       opts.onStatusChange?.("closed");
-      opts.onClose?.(e.code, e.reason);
+      opts.onClose?.(e.code, e.reason, lastErrorCode);
     };
 
     ws.onerror = () => {

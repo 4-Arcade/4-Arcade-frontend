@@ -1,73 +1,53 @@
-import { Link, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import LoginModal from '../components/LoginModal'
 import RegisterModal from '../components/RegisterModal'
-import QuizCard from '../components/QuizCard'
-
-const categories = ['전체', 'K-POP', 'POP', 'OST', '게임음악', '기타']
-
-const sampleQuizzes = [
-  { title: '2024 K-POP 히트곡 모음', category: 'K-POP', questionCount: 20, author: '뮤직러버', playCount: 1234 },
-  { title: '인기 POP 명곡 퀴즈', category: 'POP', questionCount: 15, author: '팝마스터', playCount: 856 },
-  { title: '애니메이션 OST 퀴즈', category: 'OST', questionCount: 25, author: '오타쿠킹', playCount: 2105 },
-  { title: '게임 BGM 맞추기', category: '게임음악', questionCount: 30, author: '게이머', playCount: 567 },
-]
-
-const avatars = ['🎵', '🎸', '🎹', '🎺', '🥁', '🎻', '🎤', '🎧']
-
-const howToSteps = [
-  {
-    n: 1,
-    title: '통화가 더 좋아요',
-    desc: '친구들을 음성 통화에 초대하세요 (예: Discord, Zoom)',
-  },
-  {
-    n: 2,
-    title: '방을 만들거나 참가하세요',
-    desc: '링크를 공유하거나 방 코드를 입력해 참여하세요.',
-  },
-  {
-    n: 3,
-    title: '노래를 듣고 맞춰보세요! 🏆',
-    desc: '빠를수록 더 많은 점수! 최고 점수를 차지하세요.',
-  },
-]
+import { useAuth } from '../context/AuthContext'
+import {
+  LAST_NICKNAME_KEY,
+  MAX_NICKNAME_LENGTH,
+} from '../services/roomConstants'
 
 export default function Home() {
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const [loginOpen, setLoginOpen] = useState(false)
   const [registerOpen, setRegisterOpen] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState('전체')
-  const [nickname, setNickname] = useState('')
-  const [avatarIdx, setAvatarIdx] = useState(0)
+  const [nickname, setNickname] = useState(
+    () => localStorage.getItem(LAST_NICKNAME_KEY) ?? ''
+  )
   const [activeTab, setActiveTab] = useState<'join' | 'create'>('join')
-  const [stepIdx, setStepIdx] = useState(0)
   const [nicknameError, setNicknameError] = useState(false)
+  const nicknameErrorTimer = useRef<number | undefined>(undefined)
 
-  const isLoggedIn = !!localStorage.getItem('accessToken')
-
-  const filtered =
-    selectedCategory === '전체'
-      ? sampleQuizzes
-      : sampleQuizzes.filter((q) => q.category === selectedCategory)
+  useEffect(() => {
+    return () => {
+      if (nicknameErrorTimer.current !== undefined) {
+        window.clearTimeout(nicknameErrorTimer.current)
+      }
+    }
+  }, [])
 
   const handleStart = () => {
     if (!nickname.trim()) {
       setNicknameError(true)
-      setTimeout(() => setNicknameError(false), 1200)
+      if (nicknameErrorTimer.current !== undefined) {
+        window.clearTimeout(nicknameErrorTimer.current)
+      }
+      nicknameErrorTimer.current = window.setTimeout(
+        () => setNicknameError(false),
+        1200
+      )
       return
     }
-    if (activeTab === 'join') {
-      navigate('/room/join')
-    } else {
-      navigate('/room/create')
-    }
+    localStorage.setItem(LAST_NICKNAME_KEY, nickname.trim())
+    navigate(activeTab === 'join' ? '/room/join' : '/room/create')
   }
 
   const handleQuizCreate = () => {
-    if (isLoggedIn) {
+    if (user) {
       navigate('/quiz/studio')
     } else {
       setLoginOpen(true)
@@ -115,19 +95,9 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* 아바타 */}
-              <div className="flex justify-center mb-6">
-                <button
-                  onClick={() => setAvatarIdx((prev) => (prev + 1) % avatars.length)}
-                  className="relative w-28 h-28 rounded-full bg-gradient-to-br from-sky-200 to-blue-300 flex items-center justify-center text-6xl shadow-lg shadow-sky-200 hover:scale-105 active:scale-95 transition-transform"
-                >
-                  {avatars[avatarIdx]}
-                </button>
-              </div>
-
               {/* 닉네임 */}
               <p className="text-xs font-bold text-sky-400 uppercase tracking-widest mb-2 text-center">
-                캐릭터와 닉네임 선택
+                닉네임 선택
               </p>
               <input
                 type="text"
@@ -135,7 +105,7 @@ export default function Home() {
                 onChange={(e) => setNickname(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleStart()}
                 placeholder="닉네임을 입력하세요"
-                maxLength={20}
+                maxLength={MAX_NICKNAME_LENGTH}
                 className={`w-full bg-sky-50 border-2 rounded-2xl px-4 py-3 text-sky-800 font-bold placeholder-sky-300 outline-none transition-all text-base ${
                   nicknameError
                     ? 'border-red-300 bg-red-50'
@@ -150,21 +120,12 @@ export default function Home() {
 
               {/* 탭에 따라 버튼 변경 — 하단 고정 */}
               <div className="mt-auto pt-5">
-                {activeTab === 'join' ? (
-                  <button
-                    onClick={handleStart}
-                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-500 text-white font-black text-lg shadow-lg hover:-translate-y-0.5 transition-all"
-                  >
-                    참여
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleStart}
-                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-500 text-white font-black text-lg shadow-lg hover:-translate-y-0.5 transition-all"
-                  >
-                    방 제작
-                  </button>
-                )}
+                <button
+                  onClick={handleStart}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-500 text-white font-black text-lg shadow-lg hover:-translate-y-0.5 transition-all"
+                >
+                  {activeTab === 'join' ? '참여' : '방 제작'}
+                </button>
               </div>
             </div>
 
@@ -212,8 +173,24 @@ export default function Home() {
         </div>
       </section>
 
-      {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
-      {registerOpen && <RegisterModal onClose={() => setRegisterOpen(false)} />}
+      {loginOpen && (
+        <LoginModal
+          onClose={() => setLoginOpen(false)}
+          onSwitchToRegister={() => {
+            setLoginOpen(false)
+            setRegisterOpen(true)
+          }}
+        />
+      )}
+      {registerOpen && (
+        <RegisterModal
+          onClose={() => setRegisterOpen(false)}
+          onSwitchToLogin={() => {
+            setRegisterOpen(false)
+            setLoginOpen(true)
+          }}
+        />
+      )}
     </div>
   )
 }

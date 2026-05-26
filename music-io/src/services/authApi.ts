@@ -25,14 +25,19 @@ export interface AuthResponse {
 }
 
 async function request<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(body),
-  })
-  const data = await res.json()
-  return data as T
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    })
+    const data = await res.json()
+    return data as T
+  } catch (e) {
+    // fetch 자체 실패 (네트워크/CORS/JSON parse) → 호출자가 일관된 형태로 처리하도록 throw
+    throw e instanceof Error ? e : new Error('Network request failed')
+  }
 }
 
 export function register(email: string, password: string, nickname: string) {
