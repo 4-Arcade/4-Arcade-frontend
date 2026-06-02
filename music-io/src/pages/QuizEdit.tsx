@@ -160,8 +160,44 @@ export default function QuizEdit() {
     fetchQuiz();
   }, [id]);
 
-  if (loading) return <div>로딩 중...</div>;
-  if (!quiz) return <div>데이터 없음</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-bg-primary">
+        <Navbar />
+
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <p className="text-sm text-text-secondary">퀴즈를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!quiz) {
+    return (
+      <div className="min-h-screen bg-bg-primary">
+        <Navbar />
+
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <div className="bg-white px-8 py-8 rounded-2xl shadow-sm border text-center">
+            <p className="text-lg font-semibold text-gray-800">
+              퀴즈를 찾을 수 없습니다
+            </p>
+
+            <p className="text-sm text-gray-500 mt-2">
+              삭제되었거나 존재하지 않는 퀴즈입니다.
+            </p>
+
+            <button
+              onClick={() => navigate("/quiz/studio")}
+              className="mt-5 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              목록으로 돌아가기
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col">

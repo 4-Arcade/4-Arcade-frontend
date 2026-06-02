@@ -8,21 +8,53 @@ import { createQuiz } from "@/services/quizApi";
 type Props = {
   open: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 };
 
 const categories = ["K-POP", "POP", "OST", "게임음악", "기타"];
 
-const QuizCreateModal = ({ open, onClose }: Props) => {
+const QuizCreateModal = ({ open, onClose, onSuccess }: Props) => {
   if (!open) return null;
 
+  const [loading, setLoading] = useState(false);
   const [category, setCategory] = useState("");
   const [openCategory, setOpenCategory] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
+  const [errors, setErrors] = useState({
+    title: "",
+    category: "",
+  });
+
+  /* 제출 전 검증 */
+  const validate = () => {
+    const newErrors = {
+      title: "",
+      category: "",
+    };
+
+    if (!title.trim()) {
+      newErrors.title = "제목을 입력해주세요.";
+    }
+
+    if (!category) {
+      newErrors.category = "카테고리를 선택해주세요.";
+    }
+
+    setErrors(newErrors);
+
+    return !newErrors.title && !newErrors.category;
+  };
 
   /* 퀴즈 생성 로직 */
   const handleSubmit = async () => {
+    if (loading) return;
+
+    if (!validate()) return;
+
+    setLoading(true);
+
     const payload = {
       title,
       description,
@@ -34,7 +66,11 @@ const QuizCreateModal = ({ open, onClose }: Props) => {
       const res = await createQuiz(payload);
 
       if (res.success) {
-        alert("퀴즈가 생성되었습니다.");
+        onSuccess?.();
+
+        setTimeout(() => {
+          onClose();
+        }, 300);
       } else {
         alert(res.message);
       }
@@ -43,15 +79,26 @@ const QuizCreateModal = ({ open, onClose }: Props) => {
 
       const error = e as Error;
       alert(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-      <div className="w-full max-w-3xl bg-white rounded-2xl overflow-hidden shadow-xl">
+      <div className="w-full max-w-3xl bg-white rounded-2xl overflow-hidden shadow-xl relative">
+        {loading && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin" />
+              <p className="text-white text-sm">퀴즈 생성 중...</p>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-xl font-bold">퀴즈 만들기</h2>
+          <h2 className="text-xl font-bold">퀴즈 생성</h2>
 
           <button
             onClick={onClose}
@@ -62,13 +109,12 @@ const QuizCreateModal = ({ open, onClose }: Props) => {
         </div>
 
         {/* Body */}
-        <div className="px-6 py-6">
+        <div className="px-6 py-6 relative">
           <div className="flex gap-6">
-            {/* 왼쪽 영역 */}
             <div className="flex-1 flex flex-col gap-4">
-              {/* 제목 */}
               <div>
                 <label className="block text-base font-semibold mb-2">
+                  <span className="text-red-500 mr-1">*</span>
                   제목
                 </label>
 
@@ -81,7 +127,6 @@ const QuizCreateModal = ({ open, onClose }: Props) => {
                 />
               </div>
 
-              {/* 설명 */}
               <div>
                 <label className="block text-base font-semibold mb-2">
                   설명
@@ -95,9 +140,9 @@ const QuizCreateModal = ({ open, onClose }: Props) => {
                 />
               </div>
 
-              {/* 카테고리 */}
               <div className="relative">
                 <label className="block text-base font-semibold mb-2">
+                  <span className="text-red-500 mr-1">*</span>
                   카테고리
                 </label>
 
@@ -135,9 +180,9 @@ const QuizCreateModal = ({ open, onClose }: Props) => {
                 )}
               </div>
 
-              {/* 공개 여부 */}
               <div>
                 <label className="block text-base font-semibold mb-2">
+                  <span className="text-red-500 mr-1">*</span>
                   공개 여부
                 </label>
 
@@ -147,12 +192,10 @@ const QuizCreateModal = ({ open, onClose }: Props) => {
               </div>
             </div>
 
-            {/* 오른쪽 영역 */}
             <div className="flex-1 flex flex-col gap-6">
-              {/* 썸네일 (설명 높이에 맞춤) */}
               <div>
                 <label className="block text-base font-semibold mb-2">
-                  썸네일 (선택)
+                  썸네일
                 </label>
 
                 <button className="w-full h-50 border-4 border-dashed border-indigo-600 rounded-2xl flex flex-col items-center justify-center text-indigo-700 hover:bg-indigo-50 transition">
@@ -166,9 +209,9 @@ const QuizCreateModal = ({ open, onClose }: Props) => {
                 </button>
               </div>
 
-              {/* 답변 형식 (카테고리 라인 맞춤) */}
               <div>
                 <label className="block text-base font-semibold mb-2">
+                  <span className="text-red-500 mr-1">*</span>
                   답변 형식
                 </label>
 
@@ -195,7 +238,7 @@ const QuizCreateModal = ({ open, onClose }: Props) => {
               onClick={handleSubmit}
               className="px-10 h-11 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-md transition"
             >
-              확인
+              생성
             </button>
           </div>
         </div>

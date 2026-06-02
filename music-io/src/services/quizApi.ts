@@ -206,14 +206,10 @@ export async function deleteQuiz(quizId: string) {
 
 /* 퀴즈 생성 (인증 필요) */
 export async function createQuiz(payload: any) {
-  const token = localStorage.getItem("accessToken");
+  let url = "/quiz";
 
-  const res = await fetch(`${BASE_URL}/quiz`, {
+  const res = await apiFetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
     body: JSON.stringify(payload),
   });
 
@@ -238,8 +234,12 @@ export async function createQuiz(payload: any) {
 }
 
 /* 내 퀴즈 조회 (인증 필요) */
-export async function getMyQuizList() {
-  let url = "/mypage/quiz";
+export async function getMyQuizList(page = 0, size = 7, keyword?: String) {
+  let url = `/mypage/quiz?page=${page}&size=${size}`;
+
+  if (keyword?.trim()) {
+    url += `&keyword=${encodeURIComponent(keyword.trim())}`;
+  }
 
   const res = await apiFetch(url, {
     method: "GET",
