@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Music, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import InputField from "./InputField";
 import Button from "./Button";
 import { register } from "../services/authApi";
@@ -15,8 +14,7 @@ export default function RegisterModal({
   onClose,
   onSwitchToLogin,
 }: RegisterModalProps) {
-  const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { setAuth } = useAuth();
   const [email, setEmail] = useState("");
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
@@ -30,10 +28,8 @@ export default function RegisterModal({
     try {
       const res = await register(email, password, nickname);
       if (res.success && res.data) {
-        localStorage.setItem("accessToken", res.data.accessToken);
-        setUser(res.data.user);
-        onSwitchToLogin?.();
-        navigate("/");
+        setAuth(res.data.user, res.data.accessToken);
+        onClose();
       } else {
         setError(res.error?.message ?? "회원가입에 실패했습니다.");
       }
