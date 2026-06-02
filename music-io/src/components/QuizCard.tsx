@@ -29,31 +29,51 @@ export default function QuizCard({
 
       {/* 내용 */}
       <div className="flex flex-col flex-1 gap-2.5 p-4 min-h-0">
-        <p className="text-[16px] font-semibold text-text-primary break-words">
+        <p className="text-[16px] font-semibold text-text-primary line-clamp-1 min-h-[20px]">
           {title}
         </p>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="bg-blue-50 text-blue-600 text-[11px] font-semibold px-2 py-1 rounded-[6px]">
-            {category}
-          </span>
+        {createdBy ? (
+          <>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="bg-blue-50 text-blue-600 text-[11px] font-semibold px-2 py-1 rounded-[6px]">
+                {category}
+              </span>
 
-          <span className="text-[12px] text-text-tertiary">
-            {questionCount}문제
-          </span>
-        </div>
+              <span className="text-[12px] text-text-tertiary">
+                {questionCount}문제
+              </span>
+            </div>
 
-        <div className="flex items-center justify-between mt-auto gap-2">
-          <span className="text-[12px] text-text-tertiary truncate">
-            by {createdBy}
-          </span>
+            <div className="flex items-center justify-between mt-auto gap-2">
+              <span className="text-[12px] text-text-tertiary truncate">
+                by {createdBy}
+              </span>
 
-          <div className="flex items-center gap-1 text-text-tertiary shrink-0">
-            <Play className="w-3 h-3" />
+              <div className="flex items-center gap-1 text-text-tertiary shrink-0">
+                <Play className="w-3 h-3" />
+                <span className="text-[12px]">
+                  {playCount.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center gap-2 mt-auto">
+            <span className="bg-blue-50 text-blue-600 text-[11px] font-semibold px-2 py-1 rounded-[6px]">
+              {category}
+            </span>
 
-            <span className="text-[12px]">{playCount.toLocaleString()}</span>
+            <span className="text-[12px] text-text-tertiary">
+              {questionCount}문제
+            </span>
+
+            <div className="flex items-center gap-1 text-text-tertiary shrink-0 ml-auto">
+              <Play className="w-3 h-3" />
+              <span className="text-[12px]">{playCount.toLocaleString()}</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

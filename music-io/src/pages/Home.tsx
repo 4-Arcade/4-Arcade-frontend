@@ -50,45 +50,40 @@ export default function Home() {
     if (user) {
       navigate('/quiz/studio')
     } else {
-      setLoginOpen(true)
+      setLoginOpen(true);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-sky-50 flex flex-col">
-
       <Navbar onLoginClick={() => setLoginOpen(true)} />
 
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-sky-50 to-sky-100 flex-1 flex items-center justify-center px-4">
-
         <div className="pointer-events-none absolute -top-24 -left-24 w-96 h-96 rounded-full bg-sky-200 opacity-30 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-blue-200 opacity-30 blur-3xl" />
 
         <div className="relative z-10 max-w-4xl mx-auto">
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto">
-
             {/* ── 왼쪽 카드 ── */}
             <div className="bg-white border border-sky-100 rounded-3xl shadow-xl shadow-sky-100/60 p-7 flex flex-col">
-
               {/* 탭: 방 참여 / 방 제작 */}
               <div className="flex bg-sky-50 border border-sky-100 rounded-2xl p-1 mb-7">
                 <button
-                  onClick={() => setActiveTab('join')}
+                  onClick={() => setActiveTab("join")}
                   className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                    activeTab === 'join'
-                      ? 'bg-white text-sky-600 shadow-sm shadow-sky-100'
-                      : 'text-sky-400 hover:text-sky-500'
+                    activeTab === "join"
+                      ? "bg-white text-sky-600 shadow-sm shadow-sky-100"
+                      : "text-sky-400 hover:text-sky-500"
                   }`}
                 >
                   방 참여
                 </button>
                 <button
-                  onClick={() => setActiveTab('create')}
+                  onClick={() => setActiveTab("create")}
                   className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                    activeTab === 'create'
-                      ? 'bg-white text-sky-600 shadow-sm shadow-sky-100'
-                      : 'text-sky-400 hover:text-sky-500'
+                    activeTab === "create"
+                      ? "bg-white text-sky-600 shadow-sm shadow-sky-100"
+                      : "text-sky-400 hover:text-sky-500"
                   }`}
                 >
                   방 제작
@@ -103,13 +98,13 @@ export default function Home() {
                 type="text"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleStart()}
+                onKeyDown={(e) => e.key === "Enter" && handleStart()}
                 placeholder="닉네임을 입력하세요"
                 maxLength={MAX_NICKNAME_LENGTH}
                 className={`w-full bg-sky-50 border-2 rounded-2xl px-4 py-3 text-sky-800 font-bold placeholder-sky-300 outline-none transition-all text-base ${
                   nicknameError
-                    ? 'border-red-300 bg-red-50'
-                    : 'border-sky-200 focus:border-sky-400 focus:bg-white'
+                    ? "border-red-300 bg-red-50"
+                    : "border-sky-200 focus:border-sky-400 focus:bg-white"
                 }`}
               />
               {nicknameError && (
@@ -137,23 +132,37 @@ export default function Home() {
 
               <div
                 className="text-7xl text-center mb-5"
-                style={{ animation: 'mascotBounce 2.4s ease-in-out infinite' }}
+                style={{ animation: "mascotBounce 2.4s ease-in-out infinite" }}
               >
                 🎼
               </div>
 
               <div className="flex flex-col px-1 space-y-4 mb-6">
                 {[
-                  { n: 1, title: '문제를 직접 만들어요', desc: '노래 제목, 아티스트, 앨범 등 원하는 문제를 추가하세요.' },
-                  { n: 2, title: '친구들과 공유하세요', desc: '만든 퀴즈를 방에서 바로 사용할 수 있어요.' },
-                  { n: 3, title: '함께 즐겨요 🎉', desc: '내가 만든 퀴즈로 친구들과 대결해보세요!' },
+                  {
+                    n: 1,
+                    title: "문제를 직접 만들어요",
+                    desc: "노래 제목, 아티스트, 앨범 등 원하는 문제를 추가하세요.",
+                  },
+                  {
+                    n: 2,
+                    title: "친구들과 공유하세요",
+                    desc: "만든 퀴즈를 방에서 바로 사용할 수 있어요.",
+                  },
+                  {
+                    n: 3,
+                    title: "함께 즐겨요 🎉",
+                    desc: "내가 만든 퀴즈로 친구들과 대결해보세요!",
+                  },
                 ].map(({ n, title, desc }) => (
                   <div key={n} className="flex gap-3 items-start">
                     <span className="flex-shrink-0 w-6 h-6 rounded-full bg-sky-400 text-white text-xs font-black flex items-center justify-center mt-0.5">
                       {n}
                     </span>
                     <span className="text-sm leading-relaxed">
-                      <strong className="text-sky-700 font-bold">{title}</strong>
+                      <strong className="text-sky-700 font-bold">
+                        {title}
+                      </strong>
                       <br />
                       <span className="text-slate-400">{desc}</span>
                     </span>
@@ -168,7 +177,6 @@ export default function Home() {
                 ✍️ 퀴즈 제작
               </button>
             </div>
-
           </div>
         </div>
       </section>
@@ -192,5 +200,5 @@ export default function Home() {
         />
       )}
     </div>
-  )
+  );
 }
