@@ -1,0 +1,196 @@
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import Navbar from '../components/Navbar'
+import LoginModal from '../components/LoginModal'
+import RegisterModal from '../components/RegisterModal'
+import { useAuth } from '../context/AuthContext'
+import {
+  LAST_NICKNAME_KEY,
+  MAX_NICKNAME_LENGTH,
+} from '../services/roomConstants'
+
+export default function Home() {
+  const navigate = useNavigate()
+  const { user } = useAuth()
+
+  const [loginOpen, setLoginOpen] = useState(false)
+  const [registerOpen, setRegisterOpen] = useState(false)
+  const [nickname, setNickname] = useState(
+    () => localStorage.getItem(LAST_NICKNAME_KEY) ?? ''
+  )
+  const [activeTab, setActiveTab] = useState<'join' | 'create'>('join')
+  const [nicknameError, setNicknameError] = useState(false)
+  const nicknameErrorTimer = useRef<number | undefined>(undefined)
+
+  useEffect(() => {
+    return () => {
+      if (nicknameErrorTimer.current !== undefined) {
+        window.clearTimeout(nicknameErrorTimer.current)
+      }
+    }
+  }, [])
+
+  const handleStart = () => {
+    if (!nickname.trim()) {
+      setNicknameError(true)
+      if (nicknameErrorTimer.current !== undefined) {
+        window.clearTimeout(nicknameErrorTimer.current)
+      }
+      nicknameErrorTimer.current = window.setTimeout(
+        () => setNicknameError(false),
+        1200
+      )
+      return
+    }
+    localStorage.setItem(LAST_NICKNAME_KEY, nickname.trim())
+    navigate(activeTab === 'join' ? '/room/join' : '/room/create')
+  }
+
+  const handleQuizCreate = () => {
+    if (user) {
+      navigate('/quiz/studio')
+    } else {
+      setLoginOpen(true)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-sky-50 flex flex-col">
+
+      <Navbar onLoginClick={() => setLoginOpen(true)} />
+
+      <section className="relative overflow-hidden bg-gradient-to-br from-white via-sky-50 to-sky-100 flex-1 flex items-center justify-center px-4">
+
+        <div className="pointer-events-none absolute -top-24 -left-24 w-96 h-96 rounded-full bg-sky-200 opacity-30 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-blue-200 opacity-30 blur-3xl" />
+
+        <div className="relative z-10 max-w-4xl mx-auto">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto">
+
+            {/* ── 왼쪽 카드 ── */}
+            <div className="bg-white border border-sky-100 rounded-3xl shadow-xl shadow-sky-100/60 p-7 flex flex-col">
+
+              {/* 탭: 방 참여 / 방 제작 */}
+              <div className="flex bg-sky-50 border border-sky-100 rounded-2xl p-1 mb-7">
+                <button
+                  onClick={() => setActiveTab('join')}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                    activeTab === 'join'
+                      ? 'bg-white text-sky-600 shadow-sm shadow-sky-100'
+                      : 'text-sky-400 hover:text-sky-500'
+                  }`}
+                >
+                  방 참여
+                </button>
+                <button
+                  onClick={() => setActiveTab('create')}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                    activeTab === 'create'
+                      ? 'bg-white text-sky-600 shadow-sm shadow-sky-100'
+                      : 'text-sky-400 hover:text-sky-500'
+                  }`}
+                >
+                  방 제작
+                </button>
+              </div>
+
+              {/* 닉네임 */}
+              <p className="text-xs font-bold text-sky-400 uppercase tracking-widest mb-2 text-center">
+                닉네임 선택
+              </p>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleStart()}
+                placeholder="닉네임을 입력하세요"
+                maxLength={MAX_NICKNAME_LENGTH}
+                className={`w-full bg-sky-50 border-2 rounded-2xl px-4 py-3 text-sky-800 font-bold placeholder-sky-300 outline-none transition-all text-base ${
+                  nicknameError
+                    ? 'border-red-300 bg-red-50'
+                    : 'border-sky-200 focus:border-sky-400 focus:bg-white'
+                }`}
+              />
+              {nicknameError && (
+                <p className="text-red-400 text-xs font-bold mt-1.5 text-center">
+                  닉네임을 입력해주세요!
+                </p>
+              )}
+
+              {/* 탭에 따라 버튼 변경 — 하단 고정 */}
+              <div className="mt-auto pt-5">
+                <button
+                  onClick={handleStart}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-500 text-white font-black text-lg shadow-lg hover:-translate-y-0.5 transition-all"
+                >
+                  {activeTab === 'join' ? '참여' : '방 제작'}
+                </button>
+              </div>
+            </div>
+
+            {/* ── 오른쪽 카드: 퀴즈 제작 유도 ── */}
+            <div className="bg-white border border-sky-100 rounded-3xl shadow-xl shadow-sky-100/60 p-7 flex flex-col">
+              <h2 className="text-center font-black text-sky-500 text-lg tracking-wide mb-5">
+                ✍️ 나만의 퀴즈 만들기
+              </h2>
+
+              <div
+                className="text-7xl text-center mb-5"
+                style={{ animation: 'mascotBounce 2.4s ease-in-out infinite' }}
+              >
+                🎼
+              </div>
+
+              <div className="flex flex-col px-1 space-y-4 mb-6">
+                {[
+                  { n: 1, title: '문제를 직접 만들어요', desc: '노래 제목, 아티스트, 앨범 등 원하는 문제를 추가하세요.' },
+                  { n: 2, title: '친구들과 공유하세요', desc: '만든 퀴즈를 방에서 바로 사용할 수 있어요.' },
+                  { n: 3, title: '함께 즐겨요 🎉', desc: '내가 만든 퀴즈로 친구들과 대결해보세요!' },
+                ].map(({ n, title, desc }) => (
+                  <div key={n} className="flex gap-3 items-start">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-sky-400 text-white text-xs font-black flex items-center justify-center mt-0.5">
+                      {n}
+                    </span>
+                    <span className="text-sm leading-relaxed">
+                      <strong className="text-sky-700 font-bold">{title}</strong>
+                      <br />
+                      <span className="text-slate-400">{desc}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={handleQuizCreate}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-500 text-white font-black text-lg shadow-lg hover:-translate-y-0.5 transition-all"
+              >
+                ✍️ 퀴즈 제작
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {loginOpen && (
+        <LoginModal
+          onClose={() => setLoginOpen(false)}
+          onSwitchToRegister={() => {
+            setLoginOpen(false)
+            setRegisterOpen(true)
+          }}
+        />
+      )}
+      {registerOpen && (
+        <RegisterModal
+          onClose={() => setRegisterOpen(false)}
+          onSwitchToLogin={() => {
+            setRegisterOpen(false)
+            setLoginOpen(true)
+          }}
+        />
+      )}
+    </div>
+  )
+}
