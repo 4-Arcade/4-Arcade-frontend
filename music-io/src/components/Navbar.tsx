@@ -6,24 +6,29 @@ interface NavbarProps {
   onLoginClick?: () => void;
 }
 
+interface NavLinkProps {
+  to: string;
+  label: string;
+  active: boolean;
+}
+
+function NavLink({ to, label, active }: NavLinkProps) {
+  return (
+    <Link
+      to={to}
+      className={`text-[15px] font-medium ${
+        active ? "text-text-primary" : "text-text-secondary"
+      } hover:text-text-primary transition-colors`}
+    >
+      {label}
+    </Link>
+  );
+}
+
 export default function Navbar({ onLoginClick }: NavbarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-
-  const navLink = (path: string, label: string) => {
-    const isActive = location.pathname === path;
-    return (
-      <Link
-        to={path}
-        className={`text-[15px] font-medium ${
-          isActive ? "text-text-primary" : "text-text-secondary"
-        } hover:text-text-primary transition-colors`}
-      >
-        {label}
-      </Link>
-    );
-  };
 
   function handleLogout() {
     logout();
@@ -37,9 +42,13 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
         <span className="text-[22px] font-bold text-blue-600">Music.io</span>
       </Link>
       <div className="flex items-center gap-8">
-        {navLink("/", "홈")}
-        {navLink("/quiz", "퀴즈 탐색")}
-        {/* {navLink("/quiz/studio", "퀴즈 제작")} */}
+        <NavLink to="/" label="홈" active={location.pathname === "/"} />
+        <NavLink
+          to="/quiz"
+          label="퀴즈 탐색"
+          active={location.pathname === "/quiz"}
+        />
+        {/* <NavLink to="/quiz/studio" label="퀴즈 제작" active={location.pathname === "/quiz/studio"} /> */}
       </div>
       <div className="flex items-center gap-3">
         {user ? (
