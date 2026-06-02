@@ -1,3 +1,5 @@
+import { apiFetch } from "./apiClient";
+
 const BASE_URL = "https://four-arcade-backend.onrender.com";
 
 export interface Quiz {
@@ -63,19 +65,21 @@ export interface QuizDetailResponse {
 export async function getQuizList(
   page = 0,
   size = 12,
-  category?: string
+  category?: string,
+  keyword?: string
 ): Promise<QuizListResponse | any> {
-  let url = `${BASE_URL}/quiz?page=${page}&size=${size}`;
+  let url = `/quiz?page=${page}&size=${size}`;
 
   if (category && category !== "전체") {
     url += `&category=${encodeURIComponent(category)}`;
   }
 
-  const res = await fetch(url, {
+  if (keyword) {
+    url += `&keyword=${encodeURIComponent(keyword)}`;
+  }
+
+  const res = await apiFetch(url, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
   });
 
   try {
@@ -89,7 +93,7 @@ export async function getQuizList(
     } else {
       return {
         success: false,
-        message: data.error.message,
+        message: data.error?.message,
       };
     }
   } catch (e) {
@@ -235,15 +239,19 @@ export async function createQuiz(payload: any) {
 
 /* 내 퀴즈 조회 (인증 필요) */
 export async function getMyQuizList() {
-  const token = localStorage.getItem("accessToken");
+  let url = "/mypage/quiz";
 
-  const res = await fetch(`${BASE_URL}/mypage/quiz`, {
+  const res = await apiFetch(url, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
   });
+
+  // const res = await fetch(`${BASE_URL}/mypage/quiz`, {
+  //   method: "GET",
+  //   headers: {
+  //     "Content-Type": "application/json",
+  //     Authorization: `Bearer ${token}`,
+  //   },
+  // });
 
   try {
     const data = await res.json();

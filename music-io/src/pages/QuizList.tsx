@@ -18,6 +18,25 @@ export default function QuizList() {
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [keyword, setKeyword] = useState("");
+
+  // 퀴즈 검색창 엔터
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      await handleSearch();
+    }
+  };
+
+  // 키워드 기준 검색
+  const handleSearch = async () => {
+    const res = await getQuizList(0, 12, activeCategory, keyword);
+
+    if (res.success) {
+      setQuizList(res.data.content);
+    } else {
+      console.error(res.message);
+    }
+  };
 
   /* 퀴즈 리스트 조회 */
   useEffect(() => {
@@ -59,6 +78,9 @@ export default function QuizList() {
             <input
               type="text"
               placeholder="퀴즈 검색..."
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="bg-transparent text-sm text-text-primary placeholder:text-text-tertiary outline-none flex-1"
             />
           </div>
@@ -69,7 +91,10 @@ export default function QuizList() {
           {categories.map((cat) => (
             <button
               key={cat}
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => {
+                setQuizList([]);
+                setActiveCategory(cat);
+              }}
               className={`px-4 py-2 rounded-full text-[13px] font-medium cursor-pointer transition-colors ${
                 activeCategory === cat
                   ? "bg-blue-600 text-white font-semibold"
@@ -88,6 +113,10 @@ export default function QuizList() {
             <div className="col-span-4 text-center text-gray-400">
               불러오는 중...
             </div>
+          ) : quizList.length === 0 ? (
+            <div className="col-span-4 text-center text-gray-400">
+              조회된 퀴즈가 없습니다.
+            </div>
           ) : (
             quizList.map((quiz) => (
               <button
@@ -100,6 +129,47 @@ export default function QuizList() {
             ))
           )}
         </div>
+
+        {/* 페이지네이션 */}
+        {quizList.length > 0 && (
+          <div className="flex justify-center items-center gap-2 mt-4">
+            {/* 이전 */}
+            <button
+              disabled={page === 0}
+              onClick={() => setPage((p) => p - 1)}
+              className="px-3 py-2 text-sm rounded-md border bg-white
+               hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              ←
+            </button>
+
+            {/* 페이지 번호 */}
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => setPage(i)}
+                className={`w-10 h-10 rounded-md text-sm font-medium transition-all border
+      ${
+        page === i
+          ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+          : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"
+      }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+
+            {/* 다음 */}
+            <button
+              disabled={page === totalPages - 1}
+              onClick={() => setPage((p) => p + 1)}
+              className="px-3 py-2 text-sm rounded-md border bg-white
+               hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              →
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

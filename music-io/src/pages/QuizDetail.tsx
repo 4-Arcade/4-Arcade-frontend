@@ -90,9 +90,6 @@ export default function QuizDetail() {
                 <p className="text-sm font-semibold text-text-primary">
                   {quiz.createdBy}
                 </p>
-                <p className="text-xs text-text-tertiary">
-                  퀴즈 12개 · 플레이 5,432회
-                </p>
               </div>
             </div>
           </div>
