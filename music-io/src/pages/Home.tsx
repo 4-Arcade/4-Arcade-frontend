@@ -242,7 +242,7 @@ export default function Home() {
 
               {/* 탭별 본문 — 참여/제작을 같은 칸에 겹쳐 항상 더 큰(제작) 높이를 차지하게 해
                   탭 전환 시 카드 높이가 변하지 않게 한다. 비활성 본문은 invisible(공간 유지·포커스 제외). */}
-              <div className="mt-6 grid">
+              <div className="mt-8 grid">
                 <div
                   className={`col-start-1 row-start-1 ${
                     activeTab === 'join' ? '' : 'invisible'
