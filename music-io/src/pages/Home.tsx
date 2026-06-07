@@ -188,7 +188,7 @@ export default function Home() {
         <div className="pointer-events-none absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-blue-200 opacity-30 blur-3xl" />
 
         <div className="relative z-10 max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto items-stretch">
             {/* ── 왼쪽 카드: 참여 / 제작 ── */}
             <div className="bg-white border border-sky-100 rounded-3xl shadow-xl shadow-sky-100/60 p-7 flex flex-col">
               {/* 탭 */}
@@ -240,9 +240,15 @@ export default function Home() {
                 </p>
               )}
 
-              {/* 탭별 본문 */}
-              {activeTab === 'join' ? (
-                <div className="mt-6">
+              {/* 탭별 본문 — 참여/제작을 같은 칸에 겹쳐 항상 더 큰(제작) 높이를 차지하게 해
+                  탭 전환 시 카드 높이가 변하지 않게 한다. 비활성 본문은 invisible(공간 유지·포커스 제외). */}
+              <div className="mt-6 grid">
+                <div
+                  className={`col-start-1 row-start-1 ${
+                    activeTab === 'join' ? '' : 'invisible'
+                  }`}
+                  aria-hidden={activeTab !== 'join'}
+                >
                   <p className="text-xs font-bold text-sky-400 uppercase tracking-widest mb-2 text-center">
                     방 코드 (6자리)
                   </p>
@@ -266,8 +272,12 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
-              ) : (
-                <div className="mt-6 grid grid-cols-2 gap-3">
+                <div
+                  className={`col-start-1 row-start-1 grid grid-cols-2 gap-3 ${
+                    activeTab === 'create' ? '' : 'invisible'
+                  }`}
+                  aria-hidden={activeTab !== 'create'}
+                >
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[12px] font-bold text-sky-400">
                       문제 수
@@ -334,7 +344,7 @@ export default function Home() {
                       : '퀴즈(맵)는 방을 만든 뒤 로비에서 선택해요.'}
                   </p>
                 </div>
-              )}
+              </div>
 
               {/* 액션 버튼 — 하단 고정 */}
               <div className="mt-auto pt-6">
