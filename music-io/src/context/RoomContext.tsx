@@ -17,6 +17,7 @@ import { useToast } from "./ToastContext";
 import type {
   RoomEntry,
   RoomStateSnapshot,
+  RoomStatus,
   GameResultData,
 } from "../services/roomTypes";
 
@@ -27,6 +28,21 @@ const ENTRY_REJECT_CODES = new Set([
   "GAME_IN_PROGRESS",
   "NICKNAME_TAKEN",
 ]);
+
+/**
+ * 화면(라우팅) 단일 진실원천. 기존엔 GameLobby/GamePlaying 이 일시적 countdown 과
+ * 메모리에 남은 과거 room:state.status 를 각자 해석해 lobby↔playing 핑퐁(=카운트다운 깜빡임)이
+ * 발생하고, 카운트다운 종료 후 새 room:state(IN_GAME) 가 올 때까지 전환이 누락됐다.
+ * WS 메시지는 순서가 보장되므로 phase 를 도착 순서대로 갱신하면 "마지막 이벤트가 승리"해
+ * 깜빡임/미전환이 모두 사라진다.
+ */
+export type GamePhase = "lobby" | "playing" | "result";
+
+function phaseFromStatus(status: RoomStatus): GamePhase {
+  if (status === "IN_GAME") return "playing";
+  if (status === "RESULT") return "result";
+  return "lobby"; // WAITING | READY
+}
 
 export type {
   RoomStatus,
@@ -49,8 +65,10 @@ interface RoomContextType {
   gameResult: GameResultData | null;
   clearGameResult: () => void;
   connectionStatus: ConnectionStatus;
-  /** 게임 시작 카운트다운 (3→2→1→0). count=0 이후 0.6초 뒤 null로 돌아감 */
+  /** 게임 시작 카운트다운 (3→2→1→0). count=0 이후 0.6초 뒤 null로 돌아감. 오버레이 표시 전용 */
   countdown: number | null;
+  /** 라우팅 단일 진실원천 (lobby/playing/result). 각 게임 페이지는 이 값으로만 전환한다 */
+  gamePhase: GamePhase;
   leave: () => void;
 }
 
@@ -66,9 +84,11 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     useState<ConnectionStatus>("closed");
   const [ws, setWs] = useState<RoomWsClient | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [gamePhase, setGamePhase] = useState<GamePhase>("lobby");
 
   const setEntry = useCallback((next: RoomEntry) => {
     setGameResult(null);
+    setGamePhase("lobby");
     setEntryState(next);
   }, []);
 
@@ -83,6 +103,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     setMyNickname(null);
     setGameResult(null);
     setCountdown(null);
+    setGamePhase("lobby");
   }, []);
 
   // entry 객체 자체가 아니라 roomId/nickname 만 deps 로 둬서
@@ -127,6 +148,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     unsubs.push(
       client.on("room:state", (data) => {
         setState(data);
+        setGamePhase(phaseFromStatus(data.status));
         if (data.status === "WAITING" || data.status === "READY") {
           setGameResult(null);
         }
@@ -138,6 +160,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
         setState((prev) =>
           prev ? { ...prev, status: data.status, players: data.players } : prev
         );
+        setGamePhase(phaseFromStatus(data.status));
       })
     );
 
@@ -150,6 +173,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     unsubs.push(
       client.on("game:result", (data) => {
         setGameResult(data);
+        setGamePhase("result");
       })
     );
 
@@ -192,6 +216,9 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     let countdownResetTimer: number | undefined;
     unsubs.push(
       client.on("game:countdown", (data) => {
+        // 카운트다운 시작 = 게임 진입. phase 를 persistent 하게 playing 으로 올려
+        // 낡은 READY 스냅샷이 lobby 로 되돌리지 못하게 한다.
+        setGamePhase("playing");
         setCountdown(data.count);
         if (data.count <= 0) {
           window.clearTimeout(countdownResetTimer);
@@ -202,6 +229,9 @@ export function RoomProvider({ children }: { children: ReactNode }) {
 
     unsubs.push(
       client.on("question:start", () => {
+        // 카운트다운이 (백그라운드 배칭 등으로) 누락돼도 question:start 는 항상 도착하므로
+        // playing 을 확정한다 → gameplaying 미전환 버그 방지.
+        setGamePhase("playing");
         window.clearTimeout(countdownResetTimer);
         setCountdown(null);
       })
@@ -231,6 +261,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
       clearGameResult,
       connectionStatus,
       countdown,
+      gamePhase,
       leave,
     }),
     [
@@ -244,6 +275,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
       clearGameResult,
       connectionStatus,
       countdown,
+      gamePhase,
       leave,
     ]
   );

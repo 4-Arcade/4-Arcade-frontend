@@ -1,10 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Music, User } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-
-interface NavbarProps {
-  onLoginClick?: () => void;
-}
+import { useAuthModal } from "../context/AuthModalContext";
 
 interface NavLinkProps {
   to: string;
@@ -25,10 +22,11 @@ function NavLink({ to, label, active }: NavLinkProps) {
   );
 }
 
-export default function Navbar({ onLoginClick }: NavbarProps) {
+export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { openLogin } = useAuthModal();
 
   function handleLogout() {
     logout();
@@ -69,7 +67,7 @@ export default function Navbar({ onLoginClick }: NavbarProps) {
           </>
         ) : (
           <button
-            onClick={onLoginClick}
+            onClick={openLogin}
             className="text-[14px] font-medium text-blue-600 hover:underline"
           >
             로그인

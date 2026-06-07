@@ -6,10 +6,15 @@ export interface RoomSettings {
   timeLimit: number;
   showAnswer: boolean;
   wrongAnswerLimit: number | null;
+  /** 맵(=퀴즈). 로비에서 방장이 선택/변경하며 host:settings_update 로 함께 전파된다. */
+  quizId?: string | null;
+  /** 표시용 퀴즈 제목 (settings 와 함께 브로드캐스트되어 전원이 동일 제목을 본다). */
+  quizTitle?: string | null;
 }
 
 export interface CreateRoomPayload {
-  quizId: string;
+  /** 맵(퀴즈)은 로비에서 정하므로 생성 시엔 선택 사항. */
+  quizId?: string;
   nickname: string;
   settings: RoomSettings;
 }

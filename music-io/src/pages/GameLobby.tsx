@@ -17,37 +17,35 @@ import { getErrorMessage } from "../services/errorMessages";
 import { colorOf } from "../utils/playerColor";
 import { MAX_PLAYERS, MIN_PLAYERS } from "../services/roomConstants";
 import type { RoomSettings } from "../services/roomApi";
+import type { Quiz } from "../services/quizApi";
+import QuizPickerModal from "../components/QuizPickerModal";
 
 export default function GameLobby() {
   const navigate = useNavigate();
   const toast = useToast();
-  const { entry, state, myNickname, isHost, ws, leave, countdown } = useRoom();
+  const { entry, state, myNickname, isHost, ws, leave, gamePhase } = useRoom();
 
   const [copied, setCopied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [hostMenuFor, setHostMenuFor] = useState<string | null>(null);
   const [confirmDisband, setConfirmDisband] = useState(false);
+  const [showQuizPicker, setShowQuizPicker] = useState(false);
 
   // entry 없으면 홈으로
   useEffect(() => {
     if (!entry) navigate("/", { replace: true });
   }, [entry, navigate]);
 
-  // 상태 전이 / 카운트다운 시작에 따른 라우팅
-  // 카운트다운은 RoomContext가 들고 있으므로 GamePlaying 마운트 후에도 보존된다.
+  // 라우팅은 RoomContext 의 gamePhase(단일 진실원천)로만 한다.
+  // 과거처럼 일시적 countdown / 낡은 state.status 를 직접 보지 않으므로 핑퐁(깜빡임)이 없다.
   useEffect(() => {
     if (!entry) return;
-    if (countdown !== null) {
+    if (gamePhase === "playing") {
       navigate(`/game/play/${entry.roomCode}`, { replace: true });
-      return;
-    }
-    if (!state) return;
-    if (state.status === "IN_GAME") {
-      navigate(`/game/play/${entry.roomCode}`, { replace: true });
-    } else if (state.status === "RESULT") {
+    } else if (gamePhase === "result") {
       navigate(`/game/result/${entry.roomCode}`, { replace: true });
     }
-  }, [state, entry, navigate, countdown]);
+  }, [entry, navigate, gamePhase]);
 
   // 에러 처리 (해산/강퇴는 RoomContext에서 공통 처리)
   useEffect(() => {
@@ -82,7 +80,7 @@ export default function GameLobby() {
 
   function handleCopyCode() {
     if (!entry) return;
-    const link = `${window.location.origin}/room/join?code=${entry.roomCode}`;
+    const link = `${window.location.origin}/?code=${entry.roomCode}`;
     navigator.clipboard.writeText(link);
     setCopied(true);
     toast.show("초대 링크가 복사되었습니다", "success");
@@ -96,6 +94,16 @@ export default function GameLobby() {
 
   function handleStart() {
     ws?.send("game:start");
+  }
+
+  // 맵(=퀴즈) 선택/변경. 다른 게임 설정은 보존한 채 quizId/quizTitle 만 갱신해 전원에 전파.
+  function handleSelectQuiz(quiz: Quiz) {
+    const base = state?.settings;
+    if (!base) return;
+    ws?.send("host:settings_update", {
+      settings: { ...base, quizId: quiz.id, quizTitle: quiz.title },
+    });
+    setShowQuizPicker(false);
   }
 
   function handleKick(nickname: string) {
@@ -115,8 +123,14 @@ export default function GameLobby() {
 
   const players = state?.players ?? [];
   const emptySlots = Math.max(0, MAX_PLAYERS - players.length);
+  // 맵(=퀴즈): 로비에서 선택한 settings.quizTitle 우선, 없으면 생성 시 프리셋(entry.quizTitle)
+  const currentQuizTitle = state?.settings.quizTitle ?? entry.quizTitle ?? null;
+  const hasQuiz = !!(state?.settings.quizId || entry.quizTitle);
   const canStart =
-    isHost && state?.status === "READY" && players.length >= MIN_PLAYERS;
+    isHost &&
+    state?.status === "READY" &&
+    players.length >= MIN_PLAYERS &&
+    hasQuiz;
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-b from-blue-100 via-blue-50 to-bg-primary relative">
@@ -150,7 +164,7 @@ export default function GameLobby() {
       <div className="flex-1 flex flex-col items-center justify-center gap-6 px-10">
         <div className="flex flex-col items-center gap-2">
           <h1 className="text-[26px] font-extrabold text-text-primary">
-            {entry.quizTitle ?? "퀴즈 정보를 불러오는 중..."}
+            {currentQuizTitle ?? "퀴즈(맵)를 선택해주세요"}
           </h1>
           <p className="text-sm text-text-secondary">
             {state
@@ -159,17 +173,28 @@ export default function GameLobby() {
           </p>
         </div>
 
-        {/* Settings button (host) */}
+        {/* Host controls: 퀴즈(맵) 선택 + 설정 변경 */}
         {isHost && state && (
-          <button
-            onClick={() => setShowSettings(true)}
-            className="flex items-center gap-2 bg-white border border-blue-200 rounded-full px-5 py-2.5 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-          >
-            <Settings className="w-[16px] h-[16px] text-blue-600" />
-            <span className="text-sm font-semibold text-blue-600">
-              설정 변경
-            </span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowQuizPicker(true)}
+              className="flex items-center gap-2 bg-white border border-blue-200 rounded-full px-5 py-2.5 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+            >
+              <Music className="w-[16px] h-[16px] text-blue-600" />
+              <span className="text-sm font-semibold text-blue-600">
+                퀴즈(맵) {currentQuizTitle ? "변경" : "선택"}
+              </span>
+            </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="flex items-center gap-2 bg-white border border-blue-200 rounded-full px-5 py-2.5 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+            >
+              <Settings className="w-[16px] h-[16px] text-blue-600" />
+              <span className="text-sm font-semibold text-blue-600">
+                설정 변경
+              </span>
+            </button>
+          </div>
         )}
 
         {/* Room Code */}
@@ -288,7 +313,9 @@ export default function GameLobby() {
                 : "bg-border cursor-not-allowed"
             }`}
           >
-            {state?.status === "READY"
+            {!hasQuiz
+              ? "퀴즈(맵)를 선택하세요"
+              : state?.status === "READY"
               ? "게임 시작"
               : players.length < MIN_PLAYERS
               ? `${MIN_PLAYERS}명 이상 필요`
@@ -314,9 +341,20 @@ export default function GameLobby() {
           initial={state.settings}
           onClose={() => setShowSettings(false)}
           onSubmit={(next) => {
-            ws?.send("host:settings_update", { settings: next });
+            // 맵(quizId/quizTitle)은 보존한 채 게임 설정만 갱신
+            ws?.send("host:settings_update", {
+              settings: { ...(state?.settings ?? {}), ...next },
+            });
             setShowSettings(false);
           }}
+        />
+      )}
+
+      {/* Quiz(map) picker modal (host) */}
+      {showQuizPicker && (
+        <QuizPickerModal
+          onClose={() => setShowQuizPicker(false)}
+          onSelect={handleSelectQuiz}
         />
       )}
 

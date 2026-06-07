@@ -7,7 +7,7 @@ import Navbar from "../components/Navbar";
 import Button from "../components/Button";
 
 // API
-import { getQuizById, QuizDetail } from "@/services/quizApi";
+import { getQuizById, type QuizDetail } from "@/services/quizApi";
 
 export default function QuizDetail() {
   const { id } = useParams();
@@ -102,7 +102,7 @@ export default function QuizDetail() {
                 <span className="text-sm font-medium">{quiz.playCount}회</span>
               </div>
             </div>
-            <Link to="/room/create">
+            <Link to={`/?tab=create&quizId=${quiz.id}`}>
               <Button variant="large" className="w-full">
                 이 퀴즈로 플레이
               </Button>

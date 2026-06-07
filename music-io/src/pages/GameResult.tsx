@@ -12,12 +12,12 @@ export default function GameResult() {
   const toast = useToast();
   const {
     entry,
-    state,
     isHost,
     ws,
     gameResult,
     clearGameResult,
     leave,
+    gamePhase,
   } = useRoom();
   const [showDetails, setShowDetails] = useState(false);
   // 새 탭 / 새 세션으로 RESULT 상태에 들어오면 백엔드가 game:result 를 unicast 하지 않아
@@ -29,14 +29,14 @@ export default function GameResult() {
     if (!entry) navigate("/", { replace: true });
   }, [entry, navigate]);
 
-  // 다시 하기 후 WAITING 상태로 돌아오면 로비로
+  // 다시 하기 / 인원부족 종료로 로비 상태가 되면 로비로 (gamePhase 단일 진실원천)
   useEffect(() => {
-    if (!state || !entry) return;
-    if (state.status === "WAITING" || state.status === "READY") {
+    if (!entry) return;
+    if (gamePhase === "lobby") {
       clearGameResult();
       navigate(`/game/lobby/${entry.roomCode}`, { replace: true });
     }
-  }, [state, entry, navigate, clearGameResult]);
+  }, [entry, navigate, gamePhase, clearGameResult]);
 
   useEffect(() => {
     if (gameResult) return;

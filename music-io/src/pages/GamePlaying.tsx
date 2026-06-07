@@ -38,7 +38,8 @@ interface SkipNotice {
 export default function GamePlaying() {
   const navigate = useNavigate();
   const toast = useToast();
-  const { entry, state, myNickname, ws, gameResult, countdown } = useRoom();
+  const { entry, state, myNickname, ws, gameResult, countdown, gamePhase } =
+    useRoom();
 
   const [question, setQuestion] = useState<QuestionInfo | null>(null);
   const [remaining, setRemaining] = useState<number>(0);
@@ -113,20 +114,15 @@ export default function GamePlaying() {
     if (!entry) navigate("/", { replace: true });
   }, [entry, navigate]);
 
-  // 상태 전이 라우팅
+  // 상태 전이 라우팅 — gamePhase(단일 진실원천)로만 전환.
   useEffect(() => {
     if (!entry) return;
-    if (gameResult) {
+    if (gameResult || gamePhase === "result") {
       navigate(`/game/result/${entry.roomCode}`, { replace: true });
-      return;
-    }
-    if (!state) return;
-    if (state.status === "WAITING" || state.status === "READY") {
+    } else if (gamePhase === "lobby") {
       navigate(`/game/lobby/${entry.roomCode}`, { replace: true });
-    } else if (state.status === "RESULT") {
-      navigate(`/game/result/${entry.roomCode}`, { replace: true });
     }
-  }, [state, entry, navigate, gameResult]);
+  }, [entry, navigate, gameResult, gamePhase]);
 
   // 초기 score 동기화
   useEffect(() => {
