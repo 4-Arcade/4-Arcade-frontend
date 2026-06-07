@@ -13,6 +13,7 @@ import {
   type RoomWsClient,
 } from "../services/wsClient";
 import { getErrorMessage } from "../services/errorMessages";
+import RoomExitGuard from "../components/RoomExitGuard";
 import { useToast } from "./ToastContext";
 import type {
   RoomEntry,
@@ -282,6 +283,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
 
   return (
     <RoomContext.Provider value={value}>
+      <RoomExitGuard active={!!entry} onConfirmLeave={leave} />
       {entry && connectionStatus === "reconnecting" && (
         <div className="fixed top-0 left-0 right-0 z-[100] bg-yellow-500 text-white text-center text-[13px] font-semibold py-1.5 shadow-md">
           연결이 끊겼습니다. 다시 연결 중...
