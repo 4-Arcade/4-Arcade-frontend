@@ -12,6 +12,7 @@ import {
   LAST_NICKNAME_KEY,
   MAX_NICKNAME_LENGTH,
   ROOM_CODE_LENGTH,
+  DEFAULT_QUIZ_ID,
 } from '../services/roomConstants'
 
 // 한글 IME 로 입력해도 같은 자리 영문 대문자로 변환 + 코드 문자셋(A-Z0-9)만 남긴다.
@@ -140,8 +141,10 @@ export default function Home() {
     }
     const nick = nickname.trim().normalize('NFC')
     setSubmitting(true)
+    // 백엔드가 quizId 를 notnull 로 요구하므로 항상 전송한다.
+    // "이 퀴즈로 플레이"로 들어온 경우 그 퀴즈를, 아니면 기본 퀴즈를 맵으로 방을 만든다(로비에서 변경 가능).
     const res = await createRoom({
-      ...(presetQuizId ? { quizId: presetQuizId } : {}),
+      quizId: presetQuizId ?? DEFAULT_QUIZ_ID,
       nickname: nick,
       settings,
     })
