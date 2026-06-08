@@ -2,8 +2,7 @@ import { useState, useRef } from 'react'
 import { User, Settings, LogOut, Music, Play, X, Camera } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import { useAuth } from '../context/AuthContext'
-
-const BASE_URL = 'https://four-arcade-backend.onrender.com'
+import { API_BASE_URL as BASE_URL } from '../services/config'
 
 const myQuizzes = [
   { title: '2024 K-POP 히트곡 모음', category: 'K-POP', plays: 1234 },

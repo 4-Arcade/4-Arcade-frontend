@@ -1,7 +1,6 @@
 import type { ServerEvents, ClientEvents } from "./wsEvents";
+import { WS_BASE_URL } from "./config";
 
-const WS_BASE_URL =
-  import.meta.env.VITE_WS_BASE_URL ?? "wss://four-arcade-backend.onrender.com";
 const DEV = import.meta.env.DEV;
 const MAX_NICKNAME_RETRY = 5;
 const MAX_RECONNECT_TRIES = 6;

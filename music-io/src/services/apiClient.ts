@@ -1,4 +1,4 @@
-const BASE_URL = "https://four-arcade-backend.onrender.com";
+import { API_BASE_URL as BASE_URL } from "./config";
 
 export async function apiFetch(
   path: string,

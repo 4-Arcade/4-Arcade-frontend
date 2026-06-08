@@ -1,5 +1,4 @@
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "https://four-arcade-backend.onrender.com";
+import { API_BASE_URL as BASE_URL } from "./config";
 
 export interface RoomSettings {
   questionCount: number;

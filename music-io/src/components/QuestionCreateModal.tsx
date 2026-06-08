@@ -35,7 +35,7 @@ const QuestionCreateModal = ({ open, quizId, questionId, onClose }: Props) => {
   const [isInvalid, setIsInvalid] = useState(false);
   const [range, setRange] = useState<[number, number]>([243, 273]);
   const [duration, setDuration] = useState(300);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [currentTime] = useState(0);
   const [answer, setAnswer] = useState("");
   const [answers, setAnswers] = useState<string[]>([]);
   const isEditMode = !!questionId;

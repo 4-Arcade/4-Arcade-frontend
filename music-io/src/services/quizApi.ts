@@ -1,6 +1,6 @@
 import { apiFetch } from "./apiClient";
 
-const BASE_URL = "https://four-arcade-backend.onrender.com";
+import { API_BASE_URL as BASE_URL } from "./config";
 
 export interface Quiz {
   id: string;
