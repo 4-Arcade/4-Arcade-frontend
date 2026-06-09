@@ -5,7 +5,6 @@ export async function apiFetch(
   options: RequestInit = {}
 ): Promise<any> {
   let accessToken = localStorage.getItem("accessToken");
-  console.log("before token >> " + accessToken);
 
   const request = (token: string | null) =>
     fetch(`${BASE_URL}${path}`, {
@@ -17,10 +16,8 @@ export async function apiFetch(
     });
 
   let res = await request(accessToken);
-  console.log("status >> " + res.status);
   // 403 체크
   if (res.status === 403) {
-    console.log("refresh!");
     let refreshToken = localStorage.getItem("refreshToken");
 
     const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
@@ -33,9 +30,7 @@ export async function apiFetch(
         refreshToken,
       }),
     });
-    console.log("refreshRes >> " + JSON.stringify(refreshRes));
     const refreshData = await refreshRes.json();
-    console.log("result >> " + JSON.stringify(refreshData));
 
     if (!refreshData.success || !refreshData.data) {
       localStorage.removeItem("accessToken");
@@ -44,7 +39,6 @@ export async function apiFetch(
     }
 
     const newToken = refreshData.data.accessToken;
-    console.log("after token >> " + newToken);
 
     localStorage.setItem("accessToken", newToken);
 
