@@ -2,6 +2,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
+import { AuthModalProvider } from "./context/AuthModalContext";
 import { RoomProvider } from "./context/RoomContext";
 import { ToastProvider } from "./context/ToastContext";
 import "./index.css";
@@ -12,9 +13,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
-          <RoomProvider>
-            <App />
-          </RoomProvider>
+          <AuthModalProvider>
+            <RoomProvider>
+              <App />
+            </RoomProvider>
+          </AuthModalProvider>
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>

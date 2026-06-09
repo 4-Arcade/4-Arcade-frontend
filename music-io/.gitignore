@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# env (커밋 금지, 예시는 .env.example 로 추적)
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

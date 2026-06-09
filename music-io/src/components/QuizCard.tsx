@@ -22,8 +22,9 @@ export default function QuizCard({
       className="w-full h-full bg-bg-card rounded-[16px] border border-border shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow flex flex-col"
       onClick={onClick}
     >
-      {/* 썸네일 */}
-      <div className="w-full aspect-[16/9] bg-blue-100 flex items-center justify-center relative shrink-0">
+      {/* 썸네일 — 고정 높이로 두어야 카드(h-66) 안에서 아래 텍스트가 잘리지 않는다.
+          (aspect-[16/9]는 카드 폭이 넓어질수록 썸네일이 커져 본문이 밀려 잘렸음) */}
+      <div className="w-full h-32 bg-blue-100 flex items-center justify-center relative shrink-0">
         <Music className="w-12 h-12 text-blue-300" />
       </div>
 

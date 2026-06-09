@@ -16,7 +16,6 @@ export default function QuizStudio() {
   const [myQuizList, setMyQuizList] = useState<MyQuiz[]>([]);
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(0);
-  const [size] = useState(7);
   const [totalPages, setTotalPages] = useState(0);
   const navigate = useNavigate();
 

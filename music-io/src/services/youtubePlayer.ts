@@ -2,8 +2,14 @@
 
 interface YTPlayer {
   destroy?: () => void;
+  mute?: () => void;
   unMute?: () => void;
   playVideo?: () => void;
+  loadVideoById?: (opts: {
+    videoId: string;
+    startSeconds?: number;
+    endSeconds?: number;
+  }) => void;
 }
 
 interface YTNamespace {
@@ -40,16 +46,20 @@ export function loadYouTubeApi(): Promise<void> {
 
 export interface YtPlayerHandle {
   destroy: () => void;
+  /** 프리로드(cue)된 플레이어를 해당 구간 실제 재생으로 승격한다 (소리 켜고 loadVideoById). */
+  loadAndPlay: (opts: { videoId: string; startSec: number; endSec: number }) => void;
 }
 
 export interface CreatePlayerOptions {
   /** YT.Player가 치환할 빈 <div>의 id */
   containerId: string;
   videoId: string;
-  startSec: number;
-  endSec: number;
+  startSec?: number;
+  endSec?: number;
   width?: number;
   height?: number;
+  /** true면 자동재생 없이 로드/버퍼링만(cue) — 다음 곡 프리로드용 */
+  preload?: boolean;
   onError?: (code: number) => void;
 }
 
@@ -75,6 +85,19 @@ export async function createYtPlayer(
           /* noop */
         }
       },
+      loadAndPlay: ({ videoId, startSec, endSec }) => {
+        try {
+          player.unMute?.();
+          player.loadVideoById?.({
+            videoId,
+            startSeconds: startSec,
+            endSeconds: endSec,
+          });
+          player.playVideo?.();
+        } catch {
+          /* noop */
+        }
+      },
     });
     const resolveOnce = () => {
       if (resolved) return;
@@ -89,21 +112,26 @@ export async function createYtPlayer(
         height: String(opts.height ?? 113),
         videoId: opts.videoId,
         playerVars: {
-          autoplay: 1,
+          autoplay: opts.preload ? 0 : 1,
           controls: 0,
           disablekb: 1,
           modestbranding: 1,
           playsinline: 1,
           rel: 0,
           enablejsapi: 1,
-          start: opts.startSec,
+          start: opts.startSec ?? 0,
           end: opts.endSec,
         },
         events: {
           onReady: () => {
             try {
-              player.unMute?.();
-              player.playVideo?.();
+              if (opts.preload) {
+                // 프리로드: 소리 없이 버퍼링만(autoplay=0 이라 재생되지 않음).
+                player.mute?.();
+              } else {
+                player.unMute?.();
+                player.playVideo?.();
+              }
             } catch {
               /* noop */
             }

@@ -1,7 +1,6 @@
 import type { ServerEvents, ClientEvents } from "./wsEvents";
+import { WS_BASE_URL } from "./config";
 
-const WS_BASE_URL =
-  import.meta.env.VITE_WS_BASE_URL ?? "wss://four-arcade-backend.onrender.com";
 const DEV = import.meta.env.DEV;
 const MAX_NICKNAME_RETRY = 5;
 const MAX_RECONNECT_TRIES = 6;
@@ -60,7 +59,9 @@ export function connectRoom(opts: ConnectOptions): RoomWsClient {
   function buildUrl(nickname: string): string {
     const params = new URLSearchParams({
       roomId: opts.roomId,
-      nickname,
+      // 한글 닉네임이 NFD(자모 분리, 예: macOS/일부 IME)로 들어오면 NFC 와 바이트가 달라져
+      // 서버 저장·표시에서 깨질 수 있다. 표준 NFC 로 정규화(ASCII·이미 NFC 면 변화 없음).
+      nickname: nickname.normalize("NFC"),
     });
     return `${WS_BASE_URL}/ws/room?${params.toString()}`;
   }

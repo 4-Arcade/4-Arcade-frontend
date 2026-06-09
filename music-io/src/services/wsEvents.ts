@@ -25,7 +25,13 @@ export interface ServerEvents {
     timeLimit: number;
     hint: string | null;
   };
-  "question:media": { videoId: string; startSec: number; endSec: number };
+  "question:media": {
+    videoId: string;
+    startSec: number;
+    endSec: number;
+    /** 다음 문제 영상 ID (현재 문제 중 미리 버퍼링하기 위함). 마지막 문제면 null/없음 */
+    nextVideoId?: string | null;
+  };
   "question:correct": { nickname: string; score: number; timeLeft: number };
   "question:end": {
     correctAnswer: string | null;

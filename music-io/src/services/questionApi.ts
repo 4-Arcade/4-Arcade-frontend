@@ -1,4 +1,4 @@
-const BASE_URL = "https://four-arcade-backend.onrender.com";
+import { API_BASE_URL as BASE_URL } from "./config";
 
 /* 문제 생성 (인증 필요) */
 export async function createQuestion(quizId: string, payload: any) {

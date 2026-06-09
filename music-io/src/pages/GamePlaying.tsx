@@ -35,10 +35,18 @@ interface SkipNotice {
   nextIn: number;
 }
 
+interface MediaData {
+  videoId: string;
+  startSec: number;
+  endSec: number;
+  nextVideoId?: string | null;
+}
+
 export default function GamePlaying() {
   const navigate = useNavigate();
   const toast = useToast();
-  const { entry, state, myNickname, ws, gameResult, countdown } = useRoom();
+  const { entry, state, myNickname, ws, gameResult, countdown, gamePhase } =
+    useRoom();
 
   const [question, setQuestion] = useState<QuestionInfo | null>(null);
   const [remaining, setRemaining] = useState<number>(0);
@@ -56,11 +64,17 @@ export default function GamePlaying() {
 
   const ytRef = useRef<YtPlayerHandle | null>(null);
   const playerWrapperRef = useRef<HTMLDivElement>(null);
-  const pendingMediaRef = useRef<{
+  // 현재 재생 중 플레이어의 컨테이너 id (onError 귀속 / 프리로드 승격 판별용)
+  const currentIdRef = useRef<string | null>(null);
+  // 다음 곡 프리로드(cue) 플레이어
+  const preloadRef = useRef<{
+    id: string;
     videoId: string;
-    startSec: number;
-    endSec: number;
+    handle: YtPlayerHandle | null;
+    failed: boolean;
   } | null>(null);
+  const playerSeqRef = useRef(0);
+  const pendingMediaRef = useRef<MediaData | null>(null);
   const apiReadyRef = useRef(false);
   const questionRef = useRef<QuestionInfo | null>(null);
   const submitTimesRef = useRef<number[]>([]);
@@ -70,42 +84,108 @@ export default function GamePlaying() {
     questionRef.current = question;
   }, [question]);
 
-  // 매 문제마다 새 YT.Player를 생성한다 (videoId를 src에 박아 autoplay 정책 통과)
-  const spawnPlayer = useCallback(
-    (data: { videoId: string; startSec: number; endSec: number }) => {
+  // 플레이어 1개 생성. wrapper 안에 고유 id target div 를 만들어 YT.Player 로 치환한다.
+  // onError 는 "현재 재생 중인 플레이어"일 때만 playback_error 를 서버에 보고한다
+  // (프리로드 중인 다음 곡의 오류를 현재 문제 오류로 오인하지 않도록).
+  const makePlayer = useCallback(
+    (opts: {
+      videoId: string;
+      startSec?: number;
+      endSec?: number;
+      preload?: boolean;
+    }) => {
       const wrapper = playerWrapperRef.current;
-      if (!wrapper) return;
-
-      // 기존 player 정리
-      ytRef.current?.destroy();
-      ytRef.current = null;
-
-      // wrapper 안에 새 target div 생성 (YT.Player는 div를 iframe으로 치환)
-      wrapper.innerHTML = "";
+      if (!wrapper) return null;
+      const id = `yt-player-${++playerSeqRef.current}`;
       const target = document.createElement("div");
-      target.id = "yt-player-target";
+      target.id = id;
       wrapper.appendChild(target);
 
-      createYtPlayer({
-        containerId: "yt-player-target",
-        videoId: data.videoId,
-        startSec: data.startSec,
-        endSec: data.endSec,
+      const promise = createYtPlayer({
+        containerId: id,
+        videoId: opts.videoId,
+        startSec: opts.startSec,
+        endSec: opts.endSec,
+        preload: opts.preload,
         onError: (code) => {
-          const q = questionRef.current;
-          if (!q) return;
-          ws?.send("question:playback_error", {
-            questionIndex: q.index,
-            errorCode: code,
-          });
+          if (currentIdRef.current === id) {
+            const q = questionRef.current;
+            if (q) {
+              ws?.send("question:playback_error", {
+                questionIndex: q.index,
+                errorCode: code,
+              });
+            }
+          } else if (preloadRef.current?.id === id) {
+            preloadRef.current.failed = true;
+          }
         },
-      })
-        .then((handle) => {
-          ytRef.current = handle;
-        })
-        .catch((e) => console.error("[yt] create error", e));
+      }).catch((e) => {
+        console.error("[yt] create error", e);
+        return null;
+      });
+
+      return { id, promise };
     },
     [ws]
+  );
+
+  // question:media 처리 — 현재 곡 재생 + 다음 곡(nextVideoId) 프리로드
+  const handleMedia = useCallback(
+    (data: MediaData) => {
+      // 1) 현재 곡: 직전에 프리로드해 둔 플레이어가 있으면 즉시 승격(빠른 시작), 없으면 새로 생성
+      const pre = preloadRef.current;
+      if (pre && pre.videoId === data.videoId && pre.handle && !pre.failed) {
+        preloadRef.current = null;
+        ytRef.current?.destroy();
+        ytRef.current = pre.handle;
+        currentIdRef.current = pre.id;
+        pre.handle.loadAndPlay({
+          videoId: data.videoId,
+          startSec: data.startSec,
+          endSec: data.endSec,
+        });
+      } else {
+        // 첫 문제이거나 프리로드 불일치/실패 → 새 플레이어(기존 동작과 동일)
+        pre?.handle?.destroy();
+        preloadRef.current = null;
+        ytRef.current?.destroy();
+        ytRef.current = null;
+        const made = makePlayer({
+          videoId: data.videoId,
+          startSec: data.startSec,
+          endSec: data.endSec,
+        });
+        if (made) {
+          currentIdRef.current = made.id;
+          made.promise.then((handle) => {
+            if (!handle) return;
+            // 그 사이 더 새로운 곡으로 교체됐으면 폐기
+            if (currentIdRef.current === made.id) ytRef.current = handle;
+            else handle.destroy();
+          });
+        }
+      }
+
+      // 2) 다음 곡 프리로드(cue) — 현재 문제 푸는 동안 미리 버퍼링
+      if (data.nextVideoId) {
+        const made = makePlayer({ videoId: data.nextVideoId, preload: true });
+        if (made) {
+          const entry = {
+            id: made.id,
+            videoId: data.nextVideoId,
+            handle: null as YtPlayerHandle | null,
+            failed: false,
+          };
+          preloadRef.current = entry;
+          made.promise.then((handle) => {
+            if (preloadRef.current === entry) entry.handle = handle;
+            else handle?.destroy();
+          });
+        }
+      }
+    },
+    [makePlayer]
   );
 
   // entry 없으면 홈으로
@@ -113,20 +193,15 @@ export default function GamePlaying() {
     if (!entry) navigate("/", { replace: true });
   }, [entry, navigate]);
 
-  // 상태 전이 라우팅
+  // 상태 전이 라우팅 — gamePhase(단일 진실원천)로만 전환.
   useEffect(() => {
     if (!entry) return;
-    if (gameResult) {
+    if (gameResult || gamePhase === "result") {
       navigate(`/game/result/${entry.roomCode}`, { replace: true });
-      return;
-    }
-    if (!state) return;
-    if (state.status === "WAITING" || state.status === "READY") {
+    } else if (gamePhase === "lobby") {
       navigate(`/game/lobby/${entry.roomCode}`, { replace: true });
-    } else if (state.status === "RESULT") {
-      navigate(`/game/result/${entry.roomCode}`, { replace: true });
     }
-  }, [state, entry, navigate, gameResult]);
+  }, [entry, navigate, gameResult, gamePhase]);
 
   // 초기 score 동기화
   useEffect(() => {
@@ -169,11 +244,11 @@ export default function GamePlaying() {
       .then(() => {
         if (!alive) return;
         apiReadyRef.current = true;
-        // API 준비 전에 도착한 media가 있으면 지금 spawn
+        // API 준비 전에 도착한 media가 있으면 지금 처리
         const pending = pendingMediaRef.current;
         if (pending) {
           pendingMediaRef.current = null;
-          spawnPlayer(pending);
+          handleMedia(pending);
         }
       })
       .catch((e) => console.error("[yt] api load error", e));
@@ -181,9 +256,12 @@ export default function GamePlaying() {
       alive = false;
       ytRef.current?.destroy();
       ytRef.current = null;
+      preloadRef.current?.handle?.destroy();
+      preloadRef.current = null;
+      currentIdRef.current = null;
       apiReadyRef.current = false;
     };
-  }, [spawnPlayer]);
+  }, [handleMedia]);
 
   // 게임 이벤트 구독 (game:countdown 은 RoomContext 가 담당)
   useEffect(() => {
@@ -215,7 +293,7 @@ export default function GamePlaying() {
     offs.push(
       ws.on("question:media", (data) => {
         if (apiReadyRef.current) {
-          spawnPlayer(data);
+          handleMedia(data);
         } else {
           // API 아직 로드 중 → 큐에 저장. API ready 후 처리됨
           pendingMediaRef.current = data;
@@ -273,7 +351,7 @@ export default function GamePlaying() {
     );
 
     return () => offs.forEach((o) => o());
-  }, [ws, toast, spawnPlayer]);
+  }, [ws, toast, handleMedia]);
 
   // 타이머
   useEffect(() => {

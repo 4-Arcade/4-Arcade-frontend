@@ -21,8 +21,8 @@ const QuizCreateModal = ({ open, onClose, onSuccess }: Props) => {
   const [openCategory, setOpenCategory] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [isPublic, setIsPublic] = useState(true);
-  const [errors, setErrors] = useState({
+  const [isPublic] = useState(true);
+  const [, setErrors] = useState({
     title: "",
     category: "",
   });

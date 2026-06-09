@@ -8,6 +8,7 @@ import {
   updateQuestion,
   getQuestionById,
 } from "@/services/questionApi";
+import { YOUTUBE_API_KEY } from "@/services/config";
 
 type Props = {
   open: boolean;
@@ -35,7 +36,7 @@ const QuestionCreateModal = ({ open, quizId, questionId, onClose }: Props) => {
   const [isInvalid, setIsInvalid] = useState(false);
   const [range, setRange] = useState<[number, number]>([243, 273]);
   const [duration, setDuration] = useState(300);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [currentTime] = useState(0);
   const [answer, setAnswer] = useState("");
   const [answers, setAnswers] = useState<string[]>([]);
   const isEditMode = !!questionId;
@@ -109,7 +110,6 @@ const QuestionCreateModal = ({ open, quizId, questionId, onClose }: Props) => {
   /* Youtube URL Validation */
   useEffect(() => {
     const videoId = getYoutubeId(url);
-    console.log("call1");
     // 1. 빈 값
     if (!url.trim()) {
       setIsInvalid(false);
@@ -125,12 +125,10 @@ const QuestionCreateModal = ({ open, quizId, questionId, onClose }: Props) => {
       return;
     }
 
-    const myApiKey = "AIzaSyBzO1hMtKD3LPbDmXsgfvSBvbcmkdgqjbk";
-
     const fetchVideoData = async () => {
       try {
         const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoId}&key=${myApiKey}`
+          `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoId}&key=${YOUTUBE_API_KEY}`
         );
 
         const data = await res.json();
