@@ -1,0 +1,26 @@
+import { Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import QuizList from "./pages/QuizList";
+import QuizEdit from "./pages/QuizEdit";
+import QuizDetail from "./pages/QuizDetail";
+import QuizStudio from "./pages/QuizStudio";
+import MyPage from "./pages/MyPage";
+import GameLobby from "./pages/GameLobby";
+import GamePlaying from "./pages/GamePlaying";
+import GameResult from "./pages/GameResult";
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/quiz" element={<QuizList />} />
+      <Route path="/quiz/edit/:id" element={<QuizEdit />} />
+      <Route path="/quiz/:id" element={<QuizDetail />} />
+      <Route path="/quiz/studio" element={<QuizStudio />} />
+      <Route path="/mypage" element={<MyPage />} />
+      <Route path="/game/lobby/:code" element={<GameLobby />} />
+      <Route path="/game/play/:code" element={<GamePlaying />} />
+      <Route path="/game/result/:code" element={<GameResult />} />
+    </Routes>
+  );
+}
