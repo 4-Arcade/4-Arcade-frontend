@@ -5,14 +5,16 @@ import { useAuth } from '../context/AuthContext'
 import { useAuthModal } from '../context/AuthModalContext'
 import { useRoom } from '../context/RoomContext'
 import { useToast } from '../context/ToastContext'
+import { Music } from 'lucide-react'
 import { getRoomByCode, createRoom, type RoomSettings } from '../services/roomApi'
+import { getQuizById } from '../services/quizApi'
 import { getErrorMessage } from '../services/errorMessages'
 import { hangulToLatin } from '../utils/hangulToLatin'
+import QuizPickerModal from '../components/QuizPickerModal'
 import {
   LAST_NICKNAME_KEY,
   MAX_NICKNAME_LENGTH,
   ROOM_CODE_LENGTH,
-  DEFAULT_QUIZ_ID,
 } from '../services/roomConstants'
 
 // 한글 IME 로 입력해도 같은 자리 영문 대문자로 변환 + 코드 문자셋(A-Z0-9)만 남긴다.
@@ -48,7 +50,11 @@ export default function Home() {
   })
   const inputsRef = useRef<(HTMLInputElement | null)[]>([])
 
-  // 방 제작: 게임 설정 (맵=퀴즈는 로비에서 방장이 선택)
+  // 방 제작: 맵(퀴즈) + 게임 설정. 맵은 모달(QuizPickerModal)로 고른다.
+  const [selectedQuiz, setSelectedQuiz] = useState<
+    { id: string; title: string; questionCount: number } | null
+  >(null)
+  const [showQuizPicker, setShowQuizPicker] = useState(false)
   const [questionCount, setQuestionCount] = useState(10)
   const [timeLimit, setTimeLimit] = useState(20)
   const [showAnswer, setShowAnswer] = useState(true)
@@ -61,6 +67,22 @@ export default function Home() {
       }
     }
   }, [])
+
+  // 퀴즈 상세 "이 퀴즈로 플레이"(?quizId=)로 들어오면 그 퀴즈를 미리 선택해 둔다.
+  useEffect(() => {
+    if (!presetQuizId) return
+    let cancelled = false
+    ;(async () => {
+      const res = await getQuizById(presetQuizId)
+      if (cancelled || !res?.success) return
+      const q = res.data
+      setSelectedQuiz({ id: q.id, title: q.title, questionCount: q.questionCount })
+      setQuestionCount((cur) => Math.max(5, Math.min(cur, 20, q.questionCount)))
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [presetQuizId])
 
   function flashNicknameError() {
     setNicknameError(true)
@@ -133,6 +155,11 @@ export default function Home() {
 
   async function handleCreate() {
     if (!nickname.trim()) return flashNicknameError()
+    if (!selectedQuiz) {
+      toast.show('퀴즈(맵)를 선택해주세요', 'error')
+      setShowQuizPicker(true)
+      return
+    }
     const settings: RoomSettings = {
       questionCount,
       timeLimit,
@@ -141,10 +168,9 @@ export default function Home() {
     }
     const nick = nickname.trim().normalize('NFC')
     setSubmitting(true)
-    // 백엔드가 quizId 를 notnull 로 요구하므로 항상 전송한다.
-    // "이 퀴즈로 플레이"로 들어온 경우 그 퀴즈를, 아니면 기본 퀴즈를 맵으로 방을 만든다(로비에서 변경 가능).
+    // 맵(퀴즈)은 제작 단계에서 모달로 확정한 selectedQuiz 로 방을 만든다.
     const res = await createRoom({
-      quizId: presetQuizId ?? DEFAULT_QUIZ_ID,
+      quizId: selectedQuiz.id,
       nickname: nick,
       settings,
     })
@@ -174,10 +200,12 @@ export default function Home() {
     'w-full bg-sky-50 border-2 border-sky-200 rounded-2xl px-4 py-3 text-sky-800 font-bold outline-none focus:border-sky-400 focus:bg-white transition-all text-sm'
 
   const questionCountOptions = useMemo(() => {
+    // 선택한 퀴즈의 문제 수를 넘는 값은 못 고르게 상한을 맞춘다(EXCEEDS_MAX_QUESTIONS 사전 차단).
+    const max = Math.max(5, Math.min(20, selectedQuiz?.questionCount ?? 20))
     const opts: number[] = []
-    for (let i = 5; i <= 20; i++) opts.push(i)
+    for (let i = 5; i <= max; i++) opts.push(i)
     return opts
-  }, [])
+  }, [selectedQuiz])
 
   return (
     <div className="min-h-screen bg-sky-50 flex flex-col">
@@ -278,6 +306,33 @@ export default function Home() {
                   }`}
                   aria-hidden={activeTab !== 'create'}
                 >
+                  {/* 맵(퀴즈) 선택 — 모달 열기 */}
+                  <div className="col-span-2 flex flex-col gap-1.5">
+                    <label className="text-[12px] font-bold text-sky-400">
+                      퀴즈 (맵)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuizPicker(true)}
+                      className="w-full flex items-center justify-between gap-2 bg-sky-50 border-2 border-sky-200 rounded-2xl px-4 py-3 text-left hover:border-sky-400 hover:bg-white transition-all"
+                    >
+                      <span className="flex items-center gap-2 min-w-0">
+                        <Music className="w-4 h-4 text-sky-500 shrink-0" />
+                        <span
+                          className={`font-bold truncate ${
+                            selectedQuiz ? 'text-sky-800' : 'text-sky-400'
+                          }`}
+                        >
+                          {selectedQuiz ? selectedQuiz.title : '퀴즈(맵) 선택'}
+                        </span>
+                      </span>
+                      {selectedQuiz && (
+                        <span className="text-[12px] font-bold text-sky-400 shrink-0">
+                          {selectedQuiz.questionCount}문제
+                        </span>
+                      )}
+                    </button>
+                  </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[12px] font-bold text-sky-400">
                       문제 수
@@ -339,9 +394,9 @@ export default function Home() {
                     </select>
                   </div>
                   <p className="col-span-2 text-[11px] text-sky-400 text-center mt-1">
-                    {presetQuizId
+                    {selectedQuiz
                       ? '선택한 퀴즈로 방을 만듭니다.'
-                      : '퀴즈(맵)는 방을 만든 뒤 로비에서 선택해요.'}
+                      : '플레이할 퀴즈(맵)를 먼저 선택하세요. (5문제 이상 공개 퀴즈)'}
                   </p>
                 </div>
               </div>
@@ -418,6 +473,23 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {showQuizPicker && (
+        <QuizPickerModal
+          onClose={() => setShowQuizPicker(false)}
+          onSelect={(quiz) => {
+            setSelectedQuiz({
+              id: quiz.id,
+              title: quiz.title,
+              questionCount: quiz.questionCount,
+            })
+            setQuestionCount((cur) =>
+              Math.max(5, Math.min(cur, 20, quiz.questionCount))
+            )
+            setShowQuizPicker(false)
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -17,8 +17,6 @@ import { getErrorMessage } from "../services/errorMessages";
 import { colorOf } from "../utils/playerColor";
 import { MAX_PLAYERS, MIN_PLAYERS } from "../services/roomConstants";
 import type { RoomSettings } from "../services/roomApi";
-import type { Quiz } from "../services/quizApi";
-import QuizPickerModal from "../components/QuizPickerModal";
 
 export default function GameLobby() {
   const navigate = useNavigate();
@@ -29,7 +27,6 @@ export default function GameLobby() {
   const [showSettings, setShowSettings] = useState(false);
   const [hostMenuFor, setHostMenuFor] = useState<string | null>(null);
   const [confirmDisband, setConfirmDisband] = useState(false);
-  const [showQuizPicker, setShowQuizPicker] = useState(false);
 
   // entry 없으면 홈으로
   useEffect(() => {
@@ -96,16 +93,6 @@ export default function GameLobby() {
     ws?.send("game:start");
   }
 
-  // 맵(=퀴즈) 선택/변경. 다른 게임 설정은 보존한 채 quizId/quizTitle 만 갱신해 전원에 전파.
-  function handleSelectQuiz(quiz: Quiz) {
-    const base = state?.settings;
-    if (!base) return;
-    ws?.send("host:settings_update", {
-      settings: { ...base, quizId: quiz.id, quizTitle: quiz.title },
-    });
-    setShowQuizPicker(false);
-  }
-
   function handleKick(nickname: string) {
     ws?.send("host:kick", { targetNickname: nickname });
     setHostMenuFor(null);
@@ -123,14 +110,10 @@ export default function GameLobby() {
 
   const players = state?.players ?? [];
   const emptySlots = Math.max(0, MAX_PLAYERS - players.length);
-  // 맵(=퀴즈): 로비에서 선택한 settings.quizTitle 우선, 없으면 생성 시 프리셋(entry.quizTitle)
+  // 맵(=퀴즈) 제목: 방 생성 시 확정된 값(state.settings.quizTitle, 없으면 entry.quizTitle)을 표시 전용으로.
   const currentQuizTitle = state?.settings.quizTitle ?? entry.quizTitle ?? null;
-  const hasQuiz = !!(state?.settings.quizId || entry.quizTitle);
   const canStart =
-    isHost &&
-    state?.status === "READY" &&
-    players.length >= MIN_PLAYERS &&
-    hasQuiz;
+    isHost && state?.status === "READY" && players.length >= MIN_PLAYERS;
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-b from-blue-100 via-blue-50 to-bg-primary relative">
@@ -173,18 +156,9 @@ export default function GameLobby() {
           </p>
         </div>
 
-        {/* Host controls: 퀴즈(맵) 선택 + 설정 변경 */}
+        {/* Host controls: 게임 설정 변경 (맵=퀴즈는 방 생성 시 확정) */}
         {isHost && state && (
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowQuizPicker(true)}
-              className="flex items-center gap-2 bg-white border border-blue-200 rounded-full px-5 py-2.5 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-            >
-              <Music className="w-[16px] h-[16px] text-blue-600" />
-              <span className="text-sm font-semibold text-blue-600">
-                퀴즈(맵) {currentQuizTitle ? "변경" : "선택"}
-              </span>
-            </button>
             <button
               onClick={() => setShowSettings(true)}
               className="flex items-center gap-2 bg-white border border-blue-200 rounded-full px-5 py-2.5 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
@@ -313,9 +287,7 @@ export default function GameLobby() {
                 : "bg-border cursor-not-allowed"
             }`}
           >
-            {!hasQuiz
-              ? "퀴즈(맵)를 선택하세요"
-              : state?.status === "READY"
+            {state?.status === "READY"
               ? "게임 시작"
               : players.length < MIN_PLAYERS
               ? `${MIN_PLAYERS}명 이상 필요`
@@ -347,14 +319,6 @@ export default function GameLobby() {
             });
             setShowSettings(false);
           }}
-        />
-      )}
-
-      {/* Quiz(map) picker modal (host) */}
-      {showQuizPicker && (
-        <QuizPickerModal
-          onClose={() => setShowQuizPicker(false)}
-          onSelect={handleSelectQuiz}
         />
       )}
 

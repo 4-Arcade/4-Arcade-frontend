@@ -19,9 +19,3 @@ export const ROOM_CODE_LENGTH = 6;
 
 /** 직전 사용 닉네임 저장 키 (비회원 자동 채움용, PRD 9절) */
 export const LAST_NICKNAME_KEY = "lastNickname";
-
-/**
- * 방 생성 시 맵(퀴즈)을 따로 고르지 않은 경우 사용할 기본 퀴즈 ID.
- * 백엔드가 quizId 를 notnull 로 요구하므로 항상 전송한다. 방장은 로비에서 맵(퀴즈)을 바꿀 수 있다.
- */
-export const DEFAULT_QUIZ_ID = "4e86517c-58e6-43fe-81fd-8c020a1bdda3";
