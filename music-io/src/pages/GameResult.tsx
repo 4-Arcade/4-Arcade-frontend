@@ -208,7 +208,11 @@ export default function GameResult() {
 
         {showDetails && (
           <div className="flex flex-col gap-2 w-[440px] bg-white rounded-2xl shadow-sm p-4">
-            {gameResult.myQuestions.map((q) => (
+            {gameResult.myQuestions.map((q) => {
+              // 정답 판정은 score 로 한다 — ws 계약상 정답이면 score>0(기본 1000+속도보너스), 오답이면 0.
+              // 백엔드 isCorrect 값이 어긋나도 score 가 신뢰 가능한 근거. (정상 isCorrect===true 도 존중)
+              const correct = q.isCorrect === true || q.score > 0;
+              return (
               <div
                 key={q.index}
                 className="flex items-center gap-3 py-2 border-b border-border last:border-b-0"
@@ -218,12 +222,12 @@ export default function GameResult() {
                 </span>
                 <span
                   className={`text-[12px] font-bold px-2 py-0.5 rounded-[6px] ${
-                    q.isCorrect
+                    correct
                       ? "bg-green-50 text-green-600"
                       : "bg-red-50 text-red-500"
                   }`}
                 >
-                  {q.isCorrect ? "정답" : "오답"}
+                  {correct ? "정답" : "오답"}
                 </span>
                 <span className="flex-1 text-[13px] text-text-secondary truncate">
                   정답: {q.correctAnswer}
@@ -232,7 +236,8 @@ export default function GameResult() {
                   +{q.score.toLocaleString()}
                 </span>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
